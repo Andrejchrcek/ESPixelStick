@@ -32,7 +32,7 @@
 #define SD_CARD_MISO_PIN        gpio_num_t::GPIO_NUM_8
 #define SD_CARD_MOSI_PIN        gpio_num_t::GPIO_NUM_9
 #define SD_CARD_CLK_PIN         gpio_num_t::GPIO_NUM_7
-#define SD_CARD_CS_PIN          gpio_num_t::GPIO_NUM_43
+#define SD_CARD_CS_PIN          gpio_num_t::GPIO_NUM_21
 
 // Output Types
 #define SUPPORT_OutputType_DMX              // UART / RMT
