@@ -980,5 +980,28 @@ void c_WebMgr::Process ()
 } // Process
 
 //-----------------------------------------------------------------------------
+void c_WebMgr::ProcessESPNOWCommand(const String& command, const String& payload)
+{
+    if (command == "get")
+    {
+        // Not supported over ESP-NOW
+    }
+    else if (command == "set")
+    {
+        JsonDocument doc;
+        deserializeJson(doc, payload);
+        JsonObject root = doc.as<JsonObject>();
+        InputMgr.ProcessJson(root);
+    }
+    else if (command == "del")
+    {
+        // Not supported over ESP-NOW
+    }
+    else if (command == "opt")
+    {
+        // Not supported over ESP-NOW
+    }
+}
+
 // create a global instance of the WEB UI manager
 c_WebMgr WebMgr;

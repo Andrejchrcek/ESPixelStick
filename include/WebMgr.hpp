@@ -23,6 +23,7 @@
 #include "output/OutputMgr.hpp"
 #include <ESPAsyncWebServer.h>
 #include <EspalexaDevice.h>
+#include <ArduinoJson.h>
 
 
 class c_WebMgr
@@ -42,6 +43,7 @@ public:
     void NetworkStateChanged   (bool NewNetworkState);
     void GetDriverName         (String & Name) { Name = "WebMgr"; }
     void CreateAdminInfoFile   ();
+    void ProcessESPNOWCommand  (const String& command, const String& payload);
 
 private:
 

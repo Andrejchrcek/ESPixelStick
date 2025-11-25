@@ -84,6 +84,10 @@ void c_NetworkMgr::Begin ()
     EthernetDriver.Begin ();
 #endif // def SUPPORT_ETHERNET
 
+#ifdef ESPNOW_SUPPORT
+    ESPNOW_manager.begin();
+#endif // def ESPNOW_SUPPORT
+
     // DEBUG_END;
 
 } // begin
@@ -99,6 +103,11 @@ void c_NetworkMgr::GetConfig (JsonObject & json)
 
     JsonObject NetworkWiFiConfig = NetworkConfig[(char*)CN_wifi].to<JsonObject> ();
     WiFiDriver.GetConfig (NetworkWiFiConfig);
+
+#ifdef ESPNOW_SUPPORT
+    JsonObject NetworkESPNOWConfig = NetworkConfig["espnow"].to<JsonObject>();
+    ESPNOW_manager.GetConfig(NetworkESPNOWConfig);
+#endif // ESPNOW_SUPPORT
 
 #ifdef SUPPORT_ETHERNET
     JsonWrite(NetworkConfig, CN_weus, AllowWiFiAndEthUpSimultaneously);
@@ -152,6 +161,10 @@ void c_NetworkMgr::Poll ()
         EthernetDriver.Poll ();
 #endif // def SUPPORT_ETHERNET
 
+#ifdef ESPNOW_SUPPORT
+        ESPNOW_manager.loop();
+#endif // def ESPNOW_SUPPORT
+
     } while (false);
 
     // DEBUG_END;
@@ -202,6 +215,14 @@ bool c_NetworkMgr::SetConfig (JsonObject & json)
                 logcon (String (F ("No network WiFi settings found. Using default WiFi Settings")));
             }
         }
+
+#ifdef ESPNOW_SUPPORT
+        JsonObject networkESPNOW = network["espnow"];
+        if (networkESPNOW)
+        {
+            ESPNOW_manager.SetConfig(networkESPNOW);
+        }
+#endif // ESPNOW_SUPPORT
 
 #ifdef SUPPORT_ETHERNET
         ConfigChanged = setFromJSON (AllowWiFiAndEthUpSimultaneously, network, CN_weus);
