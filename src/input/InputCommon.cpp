@@ -51,6 +51,6 @@ c_InputCommon::~c_InputCommon ()
  {
     // DEBUG_START;
 
-    
+
     // DEBUG_END;
  } // ClearStatistics

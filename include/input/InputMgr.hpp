@@ -53,6 +53,7 @@ public:
     void LoadConfig           ();
     void ScheduleLoadConfig   () {ConfigLoadNeeded = now();}
     void GetConfig            (byte * Response, uint32_t maxlen);
+    void GetConfig            (String & Response);
     void GetStatus            (JsonObject & jsonStatus);
     void SetConfig            (const char * NewConfig);
     void SetConfig            (ArduinoJson::JsonDocument & NewConfig);
@@ -68,6 +69,7 @@ public:
     void ProcessButtonActions (c_ExternalInput::InputValue_t value);
     bool RemotePlayEnabled    (void);
     void ClearStatistics      (void);
+    bool isESPNOWActive       (void);
 
     enum e_InputType
     {
@@ -80,6 +82,7 @@ public:
         InputType_FPP,
 #endif // def SUPPORT_FPP
         InputType_Artnet,
+        InputType_ESPNOW,
         InputType_Disabled,
         InputType_End,
         InputType_Start = InputType_E1_31,
