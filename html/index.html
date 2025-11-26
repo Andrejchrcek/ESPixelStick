@@ -28,6 +28,7 @@
                 <ul class="nav navbar-nav" id="navbar-ul">
                     <li class="active"><a href="#home">Home</a></li>
                     <li><a href="#pg_network">Network Setup</a></li>
+                    <li><a href="#espnow">ESP-NOW Settings</a></li>
                     <li><a href="#config">Device Setup</a></li>
                     <li><a href="#diag">Diagnostics</a></li>
                     <li id="li-filemanagement" class="hidden"><a href="#filemanagement">File Management</a></li>
@@ -413,6 +414,34 @@
                     <button id="btn_clearstatistics" type="button" class="btn btn-primary">Clear Statistics</button>
                 </div>
             </div>
+        </div>
+
+        <!-- ESP-NOW Configuration -->
+        <div id="espnow" class="mdiv hidden anchor">
+            <form class="form-horizontal">
+                <fieldset>
+                    <legend class="esps-legend">ESP-NOW Configuration</legend>
+                    <div class="form-group">
+                        <label class="control-label col-sm-2" for="espnow_enable">Enable ESP-NOW</label>
+                        <div class="col-sm-8">
+                            <div class="checkbox">
+                                <label><input type="checkbox" id="espnow_enable"></label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label col-sm-2" for="peer_mac">Peer MAC Address</label>
+                        <div class="col-sm-6">
+                            <input type="text" class="form-control" id="peer_mac" placeholder="FF:FF:FF:FF:FF:FF">
+                        </div>
+                    </div>
+                </fieldset>
+                <div class="form-group">
+                    <div class="col-sm-offset-2 col-sm-8">
+                        <button id="btn_espnow" type="button" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </div>
+            </form>
         </div>
 
         <!-- Network Configuration -->

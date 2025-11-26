@@ -1560,6 +1560,11 @@ function ProcessReceivedJsonConfigMessage(JsonConfigData) {
             $('#pg_network #network #eth').addClass("hidden")
         }
 
+        if ({}.hasOwnProperty.call(System_Config.network, 'espnow')) {
+            $('#espnow_enable').prop('checked', System_Config.network.espnow.enabled);
+            $('#peer_mac').val(System_Config.network.espnow.peer_mac);
+        }
+
         if ({}.hasOwnProperty.call(System_Config, 'sensor')) {
             $('#TemperatureSensorGrp').removeClass("hidden");
             $('#TemperatureSensorUnits').val(System_Config.sensor.units);
@@ -2548,3 +2553,19 @@ $('#confirm-reset .btn-ok').on("click", (function () {
     showReboot();
     SendCommand('X7');
 }));
+
+$('#btn_espnow').on("click", (function () {
+    submitESPNOWConfig();
+}));
+
+function submitESPNOWConfig()
+{
+    if (System_Config.network.espnow === undefined)
+    {
+        System_Config.network.espnow = {};
+    }
+    System_Config.network.espnow.enabled = $('#espnow_enable').prop('checked');
+    System_Config.network.espnow.peer_mac = $('#peer_mac').val();
+
+    SendAllConfigFilesToServer();
+}

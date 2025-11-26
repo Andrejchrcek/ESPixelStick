@@ -28,6 +28,10 @@
 #   include "EthernetDriver.hpp"
 #endif // def SUPPORT_ETHERNET
 
+#ifdef ESPNOW_SUPPORT
+#   include "ESPNOWManager.h"
+#endif // def ESPNOW_SUPPORT
+
 class c_NetworkMgr
 {
 public:
@@ -58,6 +62,10 @@ private:
 #ifdef SUPPORT_ETHERNET
     c_EthernetDriver EthernetDriver;
 #endif // def SUPPORT_ETHERNET
+
+#ifdef ESPNOW_SUPPORT
+    ESPNOWManager ESPNOW_manager;
+#endif // def ESPNOW_SUPPORT
 
     char    hostname[65];
     bool    HasBeenInitialized  = false;
