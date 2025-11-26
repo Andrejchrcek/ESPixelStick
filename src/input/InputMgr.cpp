@@ -33,6 +33,7 @@
 #include "input/InputDDP.h"
 #include "input/InputFPPRemote.h"
 #include "input/InputArtnet.hpp"
+#include "input/InputESPNOW.h"
 // needs to be last
 #include "input/InputMgr.hpp"
 
@@ -75,6 +76,7 @@ static const InputTypeXlateMap_t InputTypeXlateMap[c_InputMgr::e_InputType::Inpu
     {c_InputMgr::e_InputType::InputType_Effects,  "Effects",    c_InputMgr::e_InputChannelIds::InputSecondaryChannelId},
     {c_InputMgr::e_InputType::InputType_MQTT,     "MQTT",       c_InputMgr::e_InputChannelIds::InputSecondaryChannelId},
     {c_InputMgr::e_InputType::InputType_Alexa,    "Alexa",      c_InputMgr::e_InputChannelIds::InputSecondaryChannelId},
+    {c_InputMgr::e_InputType::InputType_ESPNOW,   "ESP-NOW",    c_InputMgr::e_InputChannelIds::InputPrimaryChannelId},
     {c_InputMgr::e_InputType::InputType_Disabled, "Disabled",   c_InputMgr::e_InputChannelIds::InputChannelId_ALL}
 };
 
@@ -171,6 +173,32 @@ c_InputMgr::~c_InputMgr ()
     // DEBUG_END;
 
 } // ~c_InputMgr
+
+bool c_InputMgr::isESPNOWActive()
+{
+    for (auto& CurrentInput : InputChannelDrivers)
+    {
+        if (CurrentInput.DriverInUse && ((c_InputCommon*)(CurrentInput.InputDriver))->GetInputType() == e_InputType::InputType_ESPNOW)
+        {
+            c_InputESPNOW* espnowInput = (c_InputESPNOW*)CurrentInput.InputDriver;
+            if (espnowInput->isEnabled())
+            {
+                if (espnowInput->getPriority() == "espnow")
+                {
+                    return true;
+                }
+                else if (espnowInput->getPriority() == "timeout")
+                {
+                    if (millis() - espnowInput->getLastPacketTime() < espnowInput->getTimeout() * 1000)
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
 
 //-----------------------------------------------------------------------------
 ///< Start the module
@@ -369,6 +397,12 @@ void c_InputMgr::GetConfig (byte * Response, uint32_t maxlen)
 } // GetConfig
 
 //-----------------------------------------------------------------------------
+void c_InputMgr::GetConfig(String & Response)
+{
+    FileMgr.ReadFlashFile(ConfigFileName, Response);
+} // GetConfig
+
+//-----------------------------------------------------------------------------
 void c_InputMgr::GetStatus (JsonObject& jsonStatus)
 {
     // DEBUG_START;
@@ -527,6 +561,23 @@ void c_InputMgr::InstantiateNewInputChannel (e_InputChannelIds ChannelIndex, e_I
                     }
                     AllocateInput(c_InputE131, InputChannelDrivers, ChannelIndex, InputType_E1_31, InputDataBufferSize);
                     // DEBUG_V ("");
+                }
+                else
+                {
+                    AllocateInput(c_InputDisabled, InputChannelDrivers, ChannelIndex, InputType_Disabled, InputDataBufferSize);
+                }
+                break;
+            }
+
+            case e_InputType::InputType_ESPNOW:
+            {
+                if (InputTypeIsAllowedOnChannel (InputType_ESPNOW, ChannelIndex))
+                {
+                    if (!IsBooting)
+                    {
+                        logcon (String (F ("Starting ESP-NOW for channel '")) + ChannelIndex + "'.");
+                    }
+                    AllocateInput(c_InputESPNOW, InputChannelDrivers, ChannelIndex, InputType_ESPNOW, InputDataBufferSize);
                 }
                 else
                 {
@@ -752,10 +803,20 @@ void c_InputMgr::Process ()
         }
 
         bool aBlankTimerIsRunning = false;
+        bool espnowActive = isESPNOWActive();
         for (auto & CurrentInput : InputChannelDrivers)
         {
             FeedWDT();
             if(!CurrentInput.DriverInUse)
+            {
+                continue;
+            }
+
+            // Skip WiFi inputs if ESP-NOW is active
+            if (espnowActive &&
+                (((c_InputCommon*)(CurrentInput.InputDriver))->GetInputType() == e_InputType::InputType_E1_31 ||
+                 ((c_InputCommon*)(CurrentInput.InputDriver))->GetInputType() == e_InputType::InputType_Artnet ||
+                 ((c_InputCommon*)(CurrentInput.InputDriver))->GetInputType() == e_InputType::InputType_DDP))
             {
                 continue;
             }
