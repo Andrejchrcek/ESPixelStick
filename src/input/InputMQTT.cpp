@@ -398,7 +398,7 @@ void c_InputMQTT::onMqttMessage(
             break;
         }
 
-        JsonDocument rootDoc;
+        DynamicJsonDocument rootDoc(1024);
         DeserializationError error = deserializeJson (rootDoc, payload, len);
 
         // DEBUG_V ("Set new values");
@@ -679,7 +679,7 @@ void c_InputMQTT::publishHA()
     if (hadisco)
     {
         // DEBUG_V ("");
-        JsonDocument root;
+        DynamicJsonDocument root(2048);
         JsonObject JsonConfig = root.to<JsonObject> ();
 
         JsonWrite(JsonConfig, F ("platform"),           F ("MQTT"));
@@ -727,7 +727,7 @@ void c_InputMQTT::publishState()
 {
     // DEBUG_START;
 
-    JsonDocument root;
+    DynamicJsonDocument root(1024);
     root.to<JsonObject>();
     JsonObject JsonConfig = root[F ("MQTT")].to<JsonObject>();
 

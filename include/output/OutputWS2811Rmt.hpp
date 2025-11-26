@@ -46,6 +46,7 @@ public:
     void    SetOutputBufferSize (uint32_t NumChannelsAvailable);
     bool    DriverIsSendingIntensityData() {return (Rmt.DriverIsSendingIntensityData() || false == canRefresh());}
     void    PauseOutput(bool State);
+    virtual c_OutputRmt* GetRmtInstance() { return &Rmt; }
 
 private:
 

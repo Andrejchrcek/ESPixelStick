@@ -313,7 +313,7 @@ void c_InputDDP::ProcessReceivedQuery ()
     // DEBUG_START;
 
     bool haveResponse = false;
-    JsonDocument JsonResponseDoc;
+    DynamicJsonDocument JsonResponseDoc(1024);
     JsonResponseDoc.to<JsonObject>();
 
     DDP_packet_t & Packet = PacketBuffer.Packet;

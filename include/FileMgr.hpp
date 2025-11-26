@@ -60,7 +60,7 @@ public:
     bool    handleFileUpload (const String & filename, size_t index, uint8_t * data, size_t len, bool final, uint32_t totalLen);
     void    AbortSdFileUpload();
 
-    typedef std::function<void (JsonDocument& json)> DeserializationHandler;
+    typedef std::function<void (DynamicJsonDocument& json)> DeserializationHandler;
 
     typedef enum
     {
@@ -73,11 +73,11 @@ public:
     void   RenameFlashFile (String OldName, String NewName);
     bool   SaveFlashFile   (const String & FileName, String & FileData);
     bool   SaveFlashFile   (const String & FileName, const char * FileData);
-    bool   SaveFlashFile   (const String & FileName, JsonDocument & FileData);
+    bool   SaveFlashFile   (const String & FileName, DynamicJsonDocument & FileData);
     bool   SaveFlashFile   (const String & filename, uint32_t index, uint8_t *data, uint32_t len, bool final);
 
     bool   ReadFlashFile   (const String & FileName, String & FileData);
-    bool   ReadFlashFile   (const String & FileName, JsonDocument & FileData);
+    bool   ReadFlashFile   (const String & FileName, DynamicJsonDocument & FileData);
     bool   ReadFlashFile   (const String & FileName, byte * FileData, size_t maxlen);
     bool   LoadFlashFile   (const String & FileName, DeserializationHandler Handler);
     bool   FlashFileExists (const String & FileName);
@@ -90,7 +90,7 @@ public:
     bool     OpenSdFile       (const String & FileName, FileMode Mode, FileId & FileHandle, int FileListIndex);
     uint64_t ReadSdFile       (const FileId & FileHandle, byte * FileData, uint64_t NumBytesToRead, uint64_t StartingPosition);
     bool     ReadSdFile       (const String & FileName,   String & FileData);
-    bool     ReadSdFile       (const String & FileName,   JsonDocument & FileData);
+    bool     ReadSdFile       (const String & FileName,   DynamicJsonDocument & FileData);
     uint64_t WriteSdFileBuf   (const FileId & FileHandle, byte * FileData, uint64_t NumBytesToWrite);
     uint64_t WriteSdFile      (const FileId & FileHandle, byte * FileData, uint64_t NumBytesToWrite);
     uint64_t WriteSdFile      (const FileId & FileHandle, byte * FileData, uint64_t NumBytesToWrite, uint64_t StartingPosition);

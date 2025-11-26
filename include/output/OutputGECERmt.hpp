@@ -47,6 +47,7 @@ public:
     void    GetStatus (ArduinoJson::JsonObject& jsonStatus);
     void    SetOutputBufferSize (uint32_t NumChannelsAvailable);
     void    PauseOutput (bool State);
+    virtual c_OutputRmt* GetRmtInstance() { return &Rmt; }
 
 private:
 

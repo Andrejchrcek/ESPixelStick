@@ -12,7 +12,7 @@
 *
 *  The Author makes no warranty of any kind, express or implied, with regard
 *  to this program or the documentation contained in this document.  The
-*  Author shall not be liable in any event for incidental or consequential
+*-  Author shall not be liable in any event for incidental or consequential
 *  damages in connection with, or arising out of, the furnishing, performance
 *  or use of these programs.
 *
@@ -45,6 +45,7 @@ public:
     void    GetStatus (ArduinoJson::JsonObject& jsonStatus);
     void    SetOutputBufferSize (uint32_t NumChannelsAvailable);
     void    PauseOutput(bool State);
+    virtual c_OutputRmt* GetRmtInstance() { return &Rmt; }
 
 private:
 

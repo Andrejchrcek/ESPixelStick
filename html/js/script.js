@@ -277,6 +277,10 @@ $(function ()
         submitNetworkConfig();
     }));
 
+    $('#pg_espnow').on("click", "#espnow_enable", (function () {
+        submitESPNOWConfig();
+    }));
+
     $('#diag #viewStyle').on("change", (function () {
         $.cookie('diagviewStyle', $('#diag #viewStyle').val());
         clearStream();
@@ -723,6 +727,12 @@ function ProcessWindowChange(NextWindow) {
         RequestListOfFiles();
     }
 
+    else if (NextWindow === "#pg_espnow") {
+        loadContentSync("esp-now.html", "#pg_espnow", "espnow", 0);
+        RequestESPNOWConfig();
+        RequestESPNOWChannel();
+    }
+
     UpdateAdvancedOptionsMode();
     UpdateChannelCounts();
 
@@ -912,6 +922,43 @@ function RequestListOfFiles()
     });
 
 } // RequestListOfFiles
+
+function RequestESPNOWConfig() {
+    var url = "/conf/espnow.json";
+    $.ajax({
+        url: url,
+        dataType: 'json',
+        success: function (data) {
+            $('#espnow_enable').prop('checked', data.espnow.enabled);
+        },
+        error: function () {
+            console.error("RequestESPNOWConfig: AJAX request failed for: " + url);
+        }
+    });
+}
+
+function RequestESPNOWChannel() {
+    var url = "/espnow/channel";
+    $.ajax({
+        url: url,
+        dataType: 'json',
+        success: function (data) {
+            $('#espnow_channel').text(data.channel);
+        },
+        error: function () {
+            console.error("RequestESPNOWChannel: AJAX request failed for: " + url);
+        }
+    });
+}
+
+function submitESPNOWConfig() {
+    var data = {
+        espnow: {
+            enabled: $('#espnow_enable').prop('checked')
+        }
+    };
+    SendConfigFileToServer("espnow", JSON.stringify(data));
+}
 
 function BytesToMB(Value) {
      return  Math.round((Value / (1024 * 1024))).toLocaleString();
@@ -1211,7 +1258,7 @@ function MarqueeGroupAddRow(CurrentConfig) {
 
         let CurrentGroupColor = "#" + ((CurrentConfig.color.r * 256 * 256) + (CurrentConfig.color.g * 256) + CurrentConfig.color.b).toString(16);
 
-        while (-1 !== CurrentRowId.indexOf("-")) 
+        while (-1 !== CurrentRowId.indexOf("-"))
         {
             CurrentRowId = CurrentRowId.replace("-", "_");
         }
@@ -1226,17 +1273,17 @@ function MarqueeGroupAddRow(CurrentConfig) {
         let MarqueeGroupDeletePattern       = '<td><button type="Button" class="btn btn-primary"       id="MarqueeGroupDelete_'       + CurrentRowId + '" RowId="' + CurrentRowId + '">Delete</button></td>';
 
 //      var rowPattern = '<tr>' + StartPattern + EndPattern + StartValuePattern + EndValuePattern + OutputPattern + '</tr>';
-        let rowPattern = '<tr id="MarqueeGroupRow_' + (CurrentRowId) + '" RowId="' + CurrentRowId + '">' + 
-                          MarqueeGroupIdPattern + 
-                          MarqueeGroupIntensityPattern + 
-                          MarqueeGroupIntensityEndPattern + 
-                          MarqueeGroupCountPattern + 
-                          MarqueeGroupColorPattern + 
-                          MarqueeGroupDeletePattern + 
+        let rowPattern = '<tr id="MarqueeGroupRow_' + (CurrentRowId) + '" RowId="' + CurrentRowId + '">' +
+                          MarqueeGroupIdPattern +
+                          MarqueeGroupIntensityPattern +
+                          MarqueeGroupIntensityEndPattern +
+                          MarqueeGroupCountPattern +
+                          MarqueeGroupColorPattern +
+                          MarqueeGroupDeletePattern +
                           '</tr> ';
         $('#MarqueeGroupTable tbody tr:last').after(rowPattern);
         $('#MarqueeGroupDelete_' + CurrentRowId).on("click", function () { MarqueeGroupDeleteRow($(this)); });
-        
+
         $('#MarqueeGroupIntensity_' + (CurrentRowId)).val(CurrentConfig.brightness);
         $('#MarqueeGroupIntensityEnd_' + (CurrentRowId)).val(CurrentConfig.brightnessEnd);
         $('#MarqueeGroupCount_' + (CurrentRowId)).val(CurrentConfig.pixel_count);
@@ -2403,7 +2450,7 @@ function ProcessReceivedJsonStatusMessage(JsonStat) {
     {
         if ({}.hasOwnProperty.call(OutputStatus, 'Relay')) {
             $('#RelayStatus').removeClass("hidden")
-    
+
             OutputStatus.Relay.forEach(function (currentRelay) {
                 $('#RelayValue_' + currentRelay.id).text(currentRelay.activevalue);
             });

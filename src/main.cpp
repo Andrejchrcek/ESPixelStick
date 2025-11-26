@@ -33,6 +33,10 @@
 // Network interface
 #include "network/NetworkMgr.hpp"
 
+#ifdef BUILD_ESPNOW
+#include "network/ESPNOWManager.h"
+#endif
+
 // WEB interface
 #include "WebMgr.hpp"
 
@@ -106,11 +110,19 @@ bool     ConfigSaveNeeded = false;
 
 uint32_t DiscardedRxData = 0;
 
+#ifdef BUILD_ESPNOW
+ESPNOWManager ESPNOWMgr;
+#endif
+
 /////////////////////////////////////////////////////////
 //
 //  Forward Declarations
 //
 /////////////////////////////////////////////////////////
+
+#ifdef BUILD_ESPNOW
+bool dsESPNOW(JsonObject & json);
+#endif
 
 #define NO_CONFIG_NEEDED time_t(-1)
 
@@ -133,7 +145,7 @@ void TestHeap(uint32_t Id)
     LOG_PORT.println(String("Allocate JSON document. Size = ") + String(20 * 1024));
     LOG_PORT.println(String("Heap Before: ") + ESP.getFreeHeap());
     {
-        JsonDocument jsonDoc;
+        DynamicJsonDocument jsonDoc(20 * 1024);
         jsonDoc.to<JsonObject>();
     }
     LOG_PORT.println(String(" Heap After: ") + ESP.getFreeHeap());
@@ -217,6 +229,10 @@ void setup()
     // TestHeap(uint32_t(40));
     // DEBUG_V(String("NetworkMgr Heap: ") + String(ESP.getFreeHeap()));
     NetworkMgr.Begin();
+
+#ifdef BUILD_ESPNOW
+    ESPNOWMgr.begin();
+#endif
 
     // TestHeap(uint32_t(50));
     // DEBUG_V(String("WebMgr Heap: ") + String(ESP.getFreeHeap()));
@@ -303,6 +319,7 @@ bool dsDevice(JsonObject & json)
 
     return ConfigChanged;
 } // dsDevice
+
 
 // Save the config and schedule a load operation
 void SetConfig (const char * DataString)
@@ -401,7 +418,7 @@ bool deserializeCore (JsonObject & json)
     return DataHasBeenAccepted;
 }
 
-void deserializeCoreHandler (JsonDocument & jsonDoc)
+void deserializeCoreHandler (DynamicJsonDocument & jsonDoc)
 {
     // DEBUG_START;
 
@@ -421,7 +438,7 @@ void SaveConfig()
     ConfigSaveNeeded = false;
 
     // Create buffer and root object
-    JsonDocument jsonConfigDoc;
+    DynamicJsonDocument jsonConfigDoc(4096);
     jsonConfigDoc.to<JsonObject>();
     JsonObject JsonConfig = jsonConfigDoc[(char*)CN_system].to<JsonObject>();
 
@@ -481,6 +498,7 @@ void GetConfig (JsonObject & json)
     SensorDS18B20.GetConfig(json);
 #endif // def SUPPORT_SENSOR_DS18B20
 
+
     // DEBUG_END;
 } // GetConfig
 
@@ -490,7 +508,7 @@ String serializeCore(bool pretty)
     // DEBUG_START;
 
     // Create buffer and root object
-    JsonDocument jsonConfigDoc;
+    DynamicJsonDocument jsonConfigDoc(4096);
     jsonConfigDoc.to<JsonObject>();
     JsonObject JsonConfig = jsonConfigDoc.add<JsonObject>();
 
@@ -549,6 +567,10 @@ void loop()
 
     // Keep the Network Open
     NetworkMgr.Poll ();
+
+#ifdef BUILD_ESPNOW
+    ESPNOWMgr.loop();
+#endif
 
     // Poll output
     OutputMgr.Poll ();

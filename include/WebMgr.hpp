@@ -74,7 +74,7 @@ private:
     void GetOutputOptions           ();
     bool RequestReadConfigFile      (String & fileName);
 
-    using WebJsonDocument = JsonDocument;
+    using WebJsonDocument = DynamicJsonDocument;
 
 }; // c_WebMgr
 

@@ -25,6 +25,7 @@
 
 #ifdef ARDUINO_ARCH_ESP32
 #   include <driver/uart.h>
+class c_OutputRmt;
 #endif
 
 class c_OutputCommon
@@ -64,9 +65,13 @@ public:
     virtual void         ReadChannelData (uint32_t StartChannelId, uint32_t ChannelCount, byte *pTargetData);
     virtual bool         ValidateGpio (gpio_num_t ConsoleTxGpio, gpio_num_t ConsoleRxGpio);
     virtual bool         DriverIsSendingIntensityData() {return false;}
-    virtual uint32_t     GetFrameTimeMs() {return 1 + (ActualFrameDurationMicroSec / 1000); }
+    virtual uint32_t     GetFrameTimeMs() {return 1 + (ActualFrameFrameDurationMicroSec / 1000); }
     bool                 IsPaused() {return Paused;}
     virtual void         ClearStatistics (void);
+
+#ifdef ARDUINO_ARCH_ESP32
+    virtual c_OutputRmt* GetRmtInstance() { return nullptr; }
+#endif
 
 protected:
 

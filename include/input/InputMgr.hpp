@@ -55,7 +55,7 @@ public:
     void GetConfig            (byte * Response, uint32_t maxlen);
     void GetStatus            (JsonObject & jsonStatus);
     void SetConfig            (const char * NewConfig);
-    void SetConfig            (ArduinoJson::JsonDocument & NewConfig);
+    void SetConfig            (ArduinoJson::DynamicJsonDocument & NewConfig);
     void Process              ();
     void SetBufferInfo        (uint32_t BufferSize);
     void SetOperationalState  (bool Active);

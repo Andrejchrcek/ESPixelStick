@@ -122,6 +122,7 @@ private:
 #endif // ndef HasBeenInitialized
 
     TaskHandle_t SendIntensityDataTaskHandle = NULL;
+    TaskHandle_t RmtTaskHandle = NULL;
 
 public:
     c_OutputRmt ();
@@ -156,6 +157,9 @@ public:
 
     void IRAM_ATTR ISR_Handler (uint32_t isrFlags);
     c_OutputCommon * pParent = nullptr;
+
+    void SetRmtTaskHandle(TaskHandle_t taskHandle) { RmtTaskHandle = taskHandle; }
+    void NotifyRmtTask();
 
 // #define USE_RMT_DEBUG_COUNTERS
 #ifdef USE_RMT_DEBUG_COUNTERS

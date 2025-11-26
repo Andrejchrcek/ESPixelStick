@@ -310,7 +310,7 @@ void c_InputMgr::CreateNewConfig ()
     // create a place to save the config
     // DEBUG_V(String("Heap: ") + String(ESP.getFreeHeap()));
 
-    JsonDocument JsonConfigDoc;
+    DynamicJsonDocument JsonConfigDoc(8192);
     JsonConfigDoc.to<JsonObject>();
     // DEBUG_V("");
 
@@ -691,7 +691,7 @@ void c_InputMgr::LoadConfig ()
     ConfigLoadNeeded = NO_CONFIG_NEEDED;
     configInProgress = true;
     // try to load and process the config file
-    if (!FileMgr.LoadFlashFile (ConfigFileName, [this](JsonDocument & JsonConfigDoc)
+    if (!FileMgr.LoadFlashFile (ConfigFileName, [this](DynamicJsonDocument & JsonConfigDoc)
         {
             // DEBUG_V ("");
             JsonObject JsonConfig = JsonConfigDoc.as<JsonObject> ();
@@ -1033,7 +1033,7 @@ void c_InputMgr::SetConfig (const char * NewConfigData)
  *
  *   WARNING: This runs in the Web server context and cannot access the File system
  */
-void c_InputMgr::SetConfig(JsonDocument & NewConfigData)
+void c_InputMgr::SetConfig(DynamicJsonDocument & NewConfigData)
 {
     // DEBUG_START;
 

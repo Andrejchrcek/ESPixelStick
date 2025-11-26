@@ -45,6 +45,7 @@
 #include "output/OutputWS2811Uart.hpp"
 #include "output/OutputGS8208Uart.hpp"
 #include "output/OutputGS8208Rmt.hpp"
+#include <vector>
 #include "output/OutputUCS8903Uart.hpp"
 #include "output/OutputUCS8903Rmt.hpp"
 // needs to be last
@@ -378,7 +379,7 @@ void c_OutputMgr::CreateNewConfig ()
     BuildingNewConfig = true;
 
     // create a place to save the config
-    JsonDocument JsonConfigDoc;
+    DynamicJsonDocument JsonConfigDoc(8192);
     JsonConfigDoc.to<JsonObject>();
     // DEBUG_V ();
 
@@ -1032,7 +1033,7 @@ void c_OutputMgr::LoadConfig ()
     ConfigInProgress = true;
 
     // try to load and process the config file
-    if (!FileMgr.LoadFlashFile(ConfigFileName, [this](JsonDocument &JsonConfigDoc)
+    if (!FileMgr.LoadFlashFile(ConfigFileName, [this](DynamicJsonDocument &JsonConfigDoc)
         {
             // PrettyPrint(JsonConfigDoc, "OM Load Config");
 
@@ -1063,7 +1064,7 @@ void c_OutputMgr::LoadConfig ()
 } // LoadConfig
 
 //-----------------------------------------------------------------------------
-bool c_OutputMgr::FindJsonChannelConfig (JsonDocument& jsonConfig,
+bool c_OutputMgr::FindJsonChannelConfig (DynamicJsonDocument& jsonConfig,
                                          e_OutputChannelIds ChanId,
                                          e_OutputType Type,
                                          JsonObject& ChanConfig)
@@ -1155,7 +1156,7 @@ bool c_OutputMgr::FindJsonChannelConfig (JsonDocument& jsonConfig,
 } // FindChannelJsonConfig
 
 //-----------------------------------------------------------------------------
-bool c_OutputMgr::ProcessJsonConfig (JsonDocument& jsonConfig)
+bool c_OutputMgr::ProcessJsonConfig (DynamicJsonDocument& jsonConfig)
 {
     // DEBUG_START;
     bool Response = false;
@@ -1282,7 +1283,7 @@ void c_OutputMgr::SetConfig (const char * ConfigData)
  *   returns
  *       Nothing
  */
-void c_OutputMgr::SetConfig(ArduinoJson::JsonDocument & ConfigData)
+void c_OutputMgr::SetConfig(ArduinoJson::DynamicJsonDocument & ConfigData)
 {
     // DEBUG_START;
 
@@ -1628,6 +1629,18 @@ void c_OutputMgr::ClearBuffer()
     // DEBUG_END;
 
 } // ClearBuffer
+
+void c_OutputMgr::GetRmtInstances(std::vector<c_OutputRmt*>& rmtInstances)
+{
+    for (DriverInfo_t & CurrentOutput : OutputChannelDrivers)
+    {
+        c_OutputRmt* rmtInstance = ((c_OutputCommon*)CurrentOutput.OutputDriver)->GetRmtInstance();
+        if (rmtInstance)
+        {
+            rmtInstances.push_back(rmtInstance);
+        }
+    }
+}
 
 // create a global instance of the output channel factory
 c_OutputMgr OutputMgr;

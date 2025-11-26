@@ -23,6 +23,9 @@
 #include "input/InputMgr.hpp"
 #include "service/FPPDiscovery.h"
 #include "network/NetworkMgr.hpp"
+#ifdef BUILD_ESPNOW
+#include "network/ESPNOWManager.h"
+#endif
 #ifdef ARDUINO_ARCH_ESP8266
 #   include <ESPAsyncTCP.h>
 #endif // def ARDUINO_ARCH_ESP8266
@@ -49,7 +52,7 @@ static EFUpdate         efupdate; /// EFU Update Handler
 static AsyncWebServer   webServer (HTTP_PORT);  // Web Server
 
 //-----------------------------------------------------------------------------
-void PrettyPrint(JsonDocument &jsonStuff, String Name)
+void PrettyPrint(DynamicJsonDocument &jsonStuff, String Name)
 {
     // DEBUG_V ("---------------------------------------------");
     LOG_PORT.println (String (F ("---- Pretty Print: '")) + Name + "'");
@@ -146,28 +149,38 @@ void c_WebMgr::init ()
 #endif // def ARDUINO_ARCH_ESP8266
         // DEBUG_START;
         // Add header for SVG plot support?
-    	DefaultHeaders::Instance ().addHeader (F ("Access-Control-Allow-Origin"),  "*");
-    	DefaultHeaders::Instance ().addHeader (F ("Access-Control-Allow-Headers"), "append, delete, entries, foreach, get, has, keys, set, values, Authorization, Content-Type, Content-Range, Content-Disposition, Content-Description, cache-control, x-requested-with");
-    	DefaultHeaders::Instance ().addHeader (F ("Access-Control-Allow-Methods"), "GET, HEAD, POST, PUT, DELETE, CONNECT, OPTIONS, TRACE, PATCH");
+	DefaultHeaders::Instance ().addHeader (F ("Access-Control-Allow-Origin"),  "*");
+	DefaultHeaders::Instance ().addHeader (F ("Access-Control-Allow-Headers"), "append, delete, entries, foreach, get, has, keys, set, values, Authorization, Content-Type, Content-Range, Content-Disposition, Content-Description, cache-control, x-requested-with");
+	DefaultHeaders::Instance ().addHeader (F ("Access-Control-Allow-Methods"), "GET, HEAD, POST, PUT, DELETE, CONNECT, OPTIONS, TRACE, PATCH");
 
         // Setup WebSockets
         using namespace std::placeholders;
 
         // Static Handlers
-   	 	webServer.serveStatic ("/UpdRecipe/", LittleFS, "/UpdRecipe.json");
+		webServer.serveStatic ("/UpdRecipe/", LittleFS, "/UpdRecipe.json");
+        webServer.serveStatic("/conf/espnow.json", LittleFS, "/espnow.json");
+
+#ifdef BUILD_ESPNOW
+        webServer.on("/espnow/channel", HTTP_GET, [](AsyncWebServerRequest* request)
+        {
+            extern ESPNOWManager ESPNOWMgr;
+            String response = "{\"channel\":" + String(ESPNOWMgr.GetWiFiChannel()) + "}";
+            request->send(200, "application/json", response);
+        });
+#endif
 
         // Heap status handler
-    	webServer.on ("/heap", HTTP_GET | HTTP_OPTIONS, [](AsyncWebServerRequest* request)
+	webServer.on ("/heap", HTTP_GET | HTTP_OPTIONS, [](AsyncWebServerRequest* request)
         {
             request->send (200, CN_textSLASHplain, String (ESP.getFreeHeap ()).c_str());
         });
 
-    	webServer.on ("/XJ", HTTP_POST | HTTP_GET | HTTP_OPTIONS, [this](AsyncWebServerRequest* request)
+	webServer.on ("/XJ", HTTP_POST | HTTP_GET | HTTP_OPTIONS, [this](AsyncWebServerRequest* request)
         {
             ProcessXJRequest (request);
         });
 
-    	webServer.on ("/settime", HTTP_POST | HTTP_GET | HTTP_OPTIONS, [this](AsyncWebServerRequest* request)
+	webServer.on ("/settime", HTTP_POST | HTTP_GET | HTTP_OPTIONS, [this](AsyncWebServerRequest* request)
         {
             // DEBUG_V("/settime");
             // DEBUG_V(String("URL: ") + request->url());
@@ -192,7 +205,7 @@ void c_WebMgr::init ()
         });
 
         // Reboot handler
-    	webServer.on ("/X6", HTTP_POST | HTTP_OPTIONS, [](AsyncWebServerRequest* request)
+	webServer.on ("/X6", HTTP_POST | HTTP_OPTIONS, [](AsyncWebServerRequest* request)
         {
             // DEBUG_V("X6")
             if(HTTP_OPTIONS == request->method())
@@ -209,7 +222,7 @@ void c_WebMgr::init ()
         });
 
         // Reboot handler
-    	webServer.on ("/X7", HTTP_POST | HTTP_OPTIONS, [](AsyncWebServerRequest* request)
+	webServer.on ("/X7", HTTP_POST | HTTP_OPTIONS, [](AsyncWebServerRequest* request)
         {
             // DEBUG_V("X7")
             if(HTTP_OPTIONS == request->method())
@@ -231,7 +244,7 @@ void c_WebMgr::init ()
             }
         });
 
-    	webServer.on ("/relay", HTTP_GET | HTTP_OPTIONS, [](AsyncWebServerRequest* request)
+	webServer.on ("/relay", HTTP_GET | HTTP_OPTIONS, [](AsyncWebServerRequest* request)
         {
             // DEBUG_V("relay")
             if(HTTP_OPTIONS == request->method())
@@ -267,7 +280,7 @@ void c_WebMgr::init ()
             }
         });
 
-    	webServer.on ("/clearstatistics", HTTP_POST | HTTP_OPTIONS, [](AsyncWebServerRequest* request)
+	webServer.on ("/clearstatistics", HTTP_POST | HTTP_OPTIONS, [](AsyncWebServerRequest* request)
         {
             // DEBUG_V("clearstatistics - start")
             if(HTTP_OPTIONS == request->method())
@@ -287,13 +300,13 @@ void c_WebMgr::init ()
         });
 
         // ping handler
-    	webServer.on ("/XP", HTTP_GET | HTTP_POST | HTTP_OPTIONS, [](AsyncWebServerRequest* request)
+	webServer.on ("/XP", HTTP_GET | HTTP_POST | HTTP_OPTIONS, [](AsyncWebServerRequest* request)
         {
             // DEBUG_V("XP");
             request->send (200, CN_applicationSLASHjson, F("{\"pong\":true}"));
         });
 
-    	webServer.on ("/V1", HTTP_GET | HTTP_OPTIONS, [](AsyncWebServerRequest* request)
+	webServer.on ("/V1", HTTP_GET | HTTP_OPTIONS, [](AsyncWebServerRequest* request)
         {
             // DEBUG_V("V1");
             if(HTTP_OPTIONS == request->method())
@@ -343,7 +356,7 @@ void c_WebMgr::init ()
             }
         });
 
-    	webServer.on ("/file/delete", HTTP_POST | HTTP_OPTIONS, [](AsyncWebServerRequest* request)
+	webServer.on ("/file/delete", HTTP_POST | HTTP_OPTIONS, [](AsyncWebServerRequest* request)
         {
             // DEBUG_V("/file/delete");
             // DEBUG_V(String("URL: ") + request->url());
@@ -361,18 +374,18 @@ void c_WebMgr::init ()
             }
         });
 
-    	webServer.on ("/fseqfilelist", HTTP_GET,
-        	[this](AsyncWebServerRequest* request)
-        	{
+	webServer.on ("/fseqfilelist", HTTP_GET,
+		[this](AsyncWebServerRequest* request)
+		{
                 // DEBUG_V("Process: HTTP_GET /fseqfilelist");
                 request->send (LittleFS, F("/fseqfilelist.json"), CN_applicationSLASHjson);
             }
         );
 
         // JSON Config Handler
-    	webServer.on ("/conf", HTTP_GET,
-        	[this](AsyncWebServerRequest* request)
-        	{
+	webServer.on ("/conf", HTTP_GET,
+		[this](AsyncWebServerRequest* request)
+		{
                 String RequestFileName = String("/") + request->url().substring(6);
                 // DEBUG_V(String("RequestFileName: ") + RequestFileName);
                 RequestFileName.replace("//", "/");
@@ -383,8 +396,8 @@ void c_WebMgr::init ()
         );
 
         webServer.on ("/conf", HTTP_PUT | HTTP_POST | HTTP_OPTIONS,
-        	[this](AsyncWebServerRequest* request)
-        	{
+		[this](AsyncWebServerRequest* request)
+		{
                 String RequestFileName = request->url().substring(6);
                 WebRequestMethodComposite RequestMethod = request->method();
                 // DEBUG_V(String("  RequestMethod: ") + String(RequestMethod));
@@ -422,8 +435,8 @@ void c_WebMgr::init ()
                 }
             },
 
-        	[this](AsyncWebServerRequest *request, String filename, uint32_t index, uint8_t *data, uint32_t len, bool final)
-        	{
+		[this](AsyncWebServerRequest *request, String filename, uint32_t index, uint8_t *data, uint32_t len, bool final)
+		{
                 // DEBUG_V("Save File Chunk - Start");
                 // DEBUG_V(String("  url: ") + request->url());
                 // DEBUG_V(String("  len: ") + String(len));
@@ -453,7 +466,7 @@ void c_WebMgr::init ()
                     // DEBUG_V("Save Chunk - Failed");
                     request->send (404, CN_applicationSLASHjson, F("{\"status\":\"Could not save data\"}"));
                 }
-        	},
+		},
 
             [this](AsyncWebServerRequest *request, uint8_t *data, uint32_t len, uint32_t index, uint32_t total)
             {
@@ -475,7 +488,7 @@ void c_WebMgr::init ()
                     FileMgr.DeleteFlashFile(UploadFileName);
                 }
 
-            	if(FileMgr.SaveFlashFile(UploadFileName + ".tmp", index, data, len, total <= (index+len)))
+		if(FileMgr.SaveFlashFile(UploadFileName + ".tmp", index, data, len, total <= (index+len)))
                 {
                     // DEBUG_V("Save Chunk - Success");
                 }
@@ -494,7 +507,7 @@ void c_WebMgr::init ()
         );
 
         // Firmware upload handler
-    	webServer.on ("/updatefw", HTTP_POST,
+	webServer.on ("/updatefw", HTTP_POST,
             [](AsyncWebServerRequest* request)
             {
                 // DEBUG_V("Client requested reboot");
@@ -516,31 +529,31 @@ void c_WebMgr::init ()
             [](AsyncWebServerRequest* request, String filename, uint32_t index, uint8_t* data, uint32_t len, bool final)
              {WebMgr.FirmwareUpload (request, filename, index, data, len, final); }); //.setFilter (ON_STA_FILTER);
 
-    	// URL's needed for FPP Connect fseq uploading and querying
+	// URL's needed for FPP Connect fseq uploading and querying
         webServer.on ("/api/sequence", HTTP_GET,
-        	[](AsyncWebServerRequest* request)
-        	{
-        		FPPDiscovery.ProcessGET(request);
-        	});
+		[](AsyncWebServerRequest* request)
+		{
+			FPPDiscovery.ProcessGET(request);
+		});
 
-    	// URL's needed for FPP Connect fseq uploading and querying
+	// URL's needed for FPP Connect fseq uploading and querying
         webServer.on ("/api/system", HTTP_GET,
-        	[](AsyncWebServerRequest* request)
-        	{
-        		FPPDiscovery.ProcessGET(request);
-        	});
+		[](AsyncWebServerRequest* request)
+		{
+			FPPDiscovery.ProcessGET(request);
+		});
 
-    	// URL's needed for FPP Connect fseq uploading and querying
-    	webServer.on ("/fpp", HTTP_POST | HTTP_PUT,
-        	[](AsyncWebServerRequest* request)
-        	{
-            	FPPDiscovery.ProcessPOST(request);
-        	},
+	// URL's needed for FPP Connect fseq uploading and querying
+	webServer.on ("/fpp", HTTP_POST | HTTP_PUT,
+		[](AsyncWebServerRequest* request)
+		{
+		FPPDiscovery.ProcessPOST(request);
+		},
 
-        	[](AsyncWebServerRequest *request, String filename, uint32_t index, uint8_t *data, uint32_t len, bool final)
-        	{
-            	FPPDiscovery.ProcessFile(request, filename, index, data, len, final);
-        	},
+		[](AsyncWebServerRequest *request, String filename, uint32_t index, uint8_t *data, uint32_t len, bool final)
+		{
+		FPPDiscovery.ProcessFile(request, filename, index, data, len, final);
+		},
 
             [](AsyncWebServerRequest *request, uint8_t *data, uint32_t len, uint32_t index, uint32_t total)
             {
@@ -549,51 +562,51 @@ void c_WebMgr::init ()
 
         // URL that FPP's status pages use to grab JSON about the current status, what's playing, etc...
         // This can be used to mimic the behavior of actual FPP remotes
-    	webServer.on ("/fppjson.php", HTTP_GET, [](AsyncWebServerRequest* request)
+	webServer.on ("/fppjson.php", HTTP_GET, [](AsyncWebServerRequest* request)
             {
                 FPPDiscovery.ProcessFPPJson(request);
             });
 
 /*
-    	// URL's needed for FPP Connect fseq uploading and querying
-    	webServer.on ("/api/fppd", HTTP_GET, [](AsyncWebServerRequest* request)
+	// URL's needed for FPP Connect fseq uploading and querying
+	webServer.on ("/api/fppd", HTTP_GET, [](AsyncWebServerRequest* request)
             {
                 FPPDiscovery.ProcessFPPDJson(request);
             });
 
-    	// URL's needed for FPP Connect fseq uploading and querying
-    	webServer.on ("/api/channel", HTTP_GET, [](AsyncWebServerRequest* request)
+	// URL's needed for FPP Connect fseq uploading and querying
+	webServer.on ("/api/channel", HTTP_GET, [](AsyncWebServerRequest* request)
             {
                 FPPDiscovery.ProcessFPPDJson(request);
             });
 
-    	// URL's needed for FPP Connect fseq uploading and querying
-    	webServer.on ("/api/playlists", HTTP_GET, [](AsyncWebServerRequest* request)
+	// URL's needed for FPP Connect fseq uploading and querying
+	webServer.on ("/api/playlists", HTTP_GET, [](AsyncWebServerRequest* request)
             {
                 FPPDiscovery.ProcessFPPDJson(request);
             });
 
-    	// URL's needed for FPP Connect fseq uploading and querying
-    	webServer.on ("/api/cape", HTTP_GET, [](AsyncWebServerRequest* request)
+	// URL's needed for FPP Connect fseq uploading and querying
+	webServer.on ("/api/cape", HTTP_GET, [](AsyncWebServerRequest* request)
             {
                 FPPDiscovery.ProcessFPPDJson(request);
             });
 
         // URL's needed for FPP Connect fseq uploading and querying
-    	webServer.on ("/api/proxies", HTTP_GET, [](AsyncWebServerRequest* request)
+	webServer.on ("/api/proxies", HTTP_GET, [](AsyncWebServerRequest* request)
             {
                 FPPDiscovery.ProcessFPPDJson(request);
             });
 */
         // must be last servestatic entry
-    	webServer.serveStatic ("/", LittleFS, "/www/").setDefaultFile ("index.html");
+	webServer.serveStatic ("/", LittleFS, "/www/").setDefaultFile ("index.html");
 
         // FS Debugging Handler
         // webServer.serveStatic ("/fs", LittleFS, "/" );
 
         // if the client posts to the file upload page
-    	webServer.on ("/upload", HTTP_POST | HTTP_PUT | HTTP_OPTIONS,
-        	[](AsyncWebServerRequest * request)
+	webServer.on ("/upload", HTTP_POST | HTTP_PUT | HTTP_OPTIONS,
+		[](AsyncWebServerRequest * request)
             {
                 if(HTTP_OPTIONS == request->method())
                 {
@@ -614,7 +627,7 @@ void c_WebMgr::init ()
                 }
             },
 
-        	[this](AsyncWebServerRequest* request, String filename, uint32_t index, uint8_t* data, uint32_t len, bool final)
+		[this](AsyncWebServerRequest* request, String filename, uint32_t index, uint8_t* data, uint32_t len, bool final)
             {
                 // DEBUG_V (String ("Got process File request: index: ") + String (index));
                 // DEBUG_V (String ("Got process File request: len:   ") + String (len));
@@ -622,14 +635,14 @@ void c_WebMgr::init ()
                 FPPDiscovery.ProcessFile (request, filename, index, data, len, final);
             },
 
-        	[this](AsyncWebServerRequest* request, uint8_t* data, uint32_t len, uint32_t index, uint32_t total)
+		[this](AsyncWebServerRequest* request, uint8_t* data, uint32_t len, uint32_t index, uint32_t total)
             {
                 // DEBUG_V (String ("Got process Body request: index: ") + String (index));
                 // DEBUG_V (String ("Got process Body request: len:   ") + String (len));
                 // DEBUG_V (String ("Got process Body request: total: ") + String (total));
                 request->send (404, CN_applicationSLASHjson, F("{\"status\":\"Page Not found\"}"));
-        	}
-    	);
+		}
+	);
 
         webServer.onNotFound ([this](AsyncWebServerRequest* request)
             {
@@ -651,11 +664,11 @@ void c_WebMgr::init ()
                 {
                     // DEBUG_V ("IsAlexaCallbackValid == false");
                     request->send (404, CN_applicationSLASHjson, F("{\"status\":\"Page Not found\"}"));
-        		}
+			}
             });
 
-    	//give espalexa a pointer to the server object so it can use your server instead of creating its own
-    	espalexa.begin (&webServer);
+	//give espalexa a pointer to the server object so it can use your server instead of creating its own
+	espalexa.begin (&webServer);
 
         // webServer.begin ();
 
@@ -665,11 +678,11 @@ void c_WebMgr::init ()
 
         }, EspalexaDeviceType::extendedcolor);
 
-    	pAlexaDevice->setName (config.id);
-    	espalexa.addDevice (pAlexaDevice);
-    	espalexa.setDiscoverable ((nullptr != pAlexaCallback) ? true : false);
+	pAlexaDevice->setName (config.id);
+	espalexa.addDevice (pAlexaDevice);
+	espalexa.setDiscoverable ((nullptr != pAlexaCallback) ? true : false);
 
-    	logcon (String (F ("Web server listening on port ")) + HTTP_PORT);
+	logcon (String (F ("Web server listening on port ")) + HTTP_PORT);
 
         HasBeenInitialized = true;
     }
@@ -732,7 +745,7 @@ void c_WebMgr::CreateAdminInfoFile ()
 {
     // DEBUG_START;
 
-    JsonDocument AdminJsonDoc;
+    DynamicJsonDocument AdminJsonDoc(1024);
     AdminJsonDoc.to<JsonObject>();
     JsonObject jsonAdmin = AdminJsonDoc[F ("admin")].to<JsonObject> ();
 
@@ -743,7 +756,7 @@ void c_WebMgr::CreateAdminInfoFile ()
 #ifdef ARDUINO_ARCH_ESP8266
     JsonWrite(jsonAdmin, "arch", String(CN_ESP8266));
     JsonWrite(jsonAdmin, "flashchipid", String (ESP.getChipId (), HEX));
-#elif defined (ARDUINO_ARCH_ESP32)
+#elif defined (ARDDUINO_ARCH_ESP32)
     JsonWrite(jsonAdmin, "arch", String(CN_ESP32));
     JsonWrite(jsonAdmin, "flashchipid", int64String (ESP.getEfuseMac (), HEX));
 #endif
@@ -766,7 +779,7 @@ void c_WebMgr::ProcessXJRequest (AsyncWebServerRequest* client)
     // DEBUG_START;
 
     // WebJsonDoc.clear ();
-    JsonDocument WebJsonDoc;
+    DynamicJsonDocument WebJsonDoc(2048);
     WebJsonDoc.to<JsonObject>();
     JsonObject status = WebJsonDoc[(char*)CN_status].to<JsonObject> ();
     JsonObject system = status[(char*)CN_system].to<JsonObject> ();
@@ -859,6 +872,13 @@ bool c_WebMgr::RequestReadConfigFile(String & FileName)
     else if(FileName.equals(F("output_config.json")))
     {
         OutputMgr.ScheduleLoadConfig();
+    }
+    else if(FileName.equals(F("espnow.json")))
+    {
+#ifdef BUILD_ESPNOW
+        extern ESPNOWManager ESPNOWMgr;
+        ESPNOWMgr.ScheduleLoadConfig();
+#endif
     }
     else
     {
@@ -974,7 +994,7 @@ void c_WebMgr::Process ()
     {
         if (true == IsAlexaCallbackValid())
         {
-        	espalexa.loop ();
+		espalexa.loop ();
         }
     }
 } // Process

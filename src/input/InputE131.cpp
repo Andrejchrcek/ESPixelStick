@@ -20,6 +20,11 @@
 #include "input/InputE131.hpp"
 #include "network/NetworkMgr.hpp"
 
+#ifdef BUILD_ESPNOW
+#include "network/ESPNOWManager.h"
+extern ESPNOWManager ESPNOWMgr;
+#endif
+
 //-----------------------------------------------------------------------------
 c_InputE131::c_InputE131 (c_InputMgr::e_InputChannelIds NewInputChannelId,
                           c_InputMgr::e_InputType       NewChannelType,
@@ -161,6 +166,20 @@ void c_InputE131::Process ()
 //-----------------------------------------------------------------------------
 void c_InputE131::ProcessIncomingE131Data (e131_packet_t * packet)
 {
+#ifdef BUILD_ESPNOW
+    // If ESP-NOW is active, ignore sync packets to prevent conflicts.
+    if (ESPNOWMgr.IsEnabled() && (packet->root_layer.vector == VECTOR_ROOT_E131_EXTENDED_SYNCHRONIZATION))
+    {
+        return;
+    }
+#endif
+
+    // Ignore anything but Data
+    if (packet->root_layer.vector != VECTOR_ROOT_E131_DATA)
+    {
+        return;
+    }
+
     // DEBUG_START;
 
     uint8_t   * E131Data;

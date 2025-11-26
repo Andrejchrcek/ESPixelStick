@@ -55,8 +55,8 @@ void RMT_Task(void *arg)
     (void)arg;
     while (1)
     {
-        // yield a bit to other tasks but allow low latency
-        vTaskDelay(pdMS_TO_TICKS(1));
+        // Wait for a notification to start rendering a frame
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
         // process all possible channels
         for (c_OutputRmt * pRmt : rmt_isr_ThisPtrs)
@@ -432,6 +432,14 @@ void c_OutputRmt::PauseOutput(bool PauseOutput)
 } // PauseOutput
 
 //----------------------------------------------------------------------------
+void c_OutputRmt::NotifyRmtTask()
+{
+    if (SendFrameTaskHandle)
+    {
+        xTaskNotifyGive(SendFrameTaskHandle);
+    }
+}
+
 // StartNewFrame - build frame in a linear vector and call rmt_write_items (non-blocking)
 bool c_OutputRmt::StartNewFrame()
 {
@@ -641,9 +649,6 @@ bool c_OutputRmt::StartNewFrame()
         }
 
         rmt_wait_tx_done((rmt_channel_t)OutputRmtConfig.RmtChannelId, portMAX_DELAY);
-
-        if (SendFrameTaskHandle)
-            xTaskNotifyGive(SendFrameTaskHandle);
 
     } while (false);
 

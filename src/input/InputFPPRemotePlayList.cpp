@@ -133,7 +133,7 @@ bool c_InputFPPRemotePlayList::ProcessPlayListEntry ()
     // DEBUG_START;
     bool response = false;
 
-    JsonDocument JsonPlayListDoc;
+    DynamicJsonDocument JsonPlayListDoc(4096);
     JsonPlayListDoc.to<JsonObject>();
 
     do // once

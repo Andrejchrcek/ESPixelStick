@@ -720,7 +720,7 @@ bool c_FileMgr::LoadFlashFile (const String& FileName, DeserializationHandler Ha
             break;
         }
 
-        JsonDocument jsonDoc;
+        DynamicJsonDocument jsonDoc(2048);
         jsonDoc.to<JsonObject>();
 
         // DEBUG_V ("Convert File to JSON document");
@@ -734,8 +734,8 @@ bool c_FileMgr::LoadFlashFile (const String& FileName, DeserializationHandler Ha
             logcon (String(CN_stars) + CfgFileMessagePrefix + String (F ("Deserialzation Error. Error code = ")) + error.c_str () + CN_stars);
             // logcon (CN_plussigns + RawFileData + CN_minussigns);
 	        // DEBUG_V (String ("                heap: ") + String (ESP.getFreeHeap ()));
-    	    //  xDEBUG_V (String (" getMaxFreeBlockSize: ") + String (ESP.getMaxFreeBlockSize ()));
-        	// xDEBUG_V (String ("           file.size: ") + String (file.size ()));
+	    //  xDEBUG_V (String (" getMaxFreeBlockSize: ") + String (ESP.getMaxFreeBlockSize ()));
+		// xDEBUG_V (String ("           file.size: ") + String (file.size ()));
             break;
         }
 
@@ -798,7 +798,7 @@ bool c_FileMgr::SaveFlashFile (const String& FileName, const char * FileData)
 } // SaveConfigFile
 
 //-----------------------------------------------------------------------------
-bool c_FileMgr::SaveFlashFile(const String &FileName, JsonDocument &FileData)
+bool c_FileMgr::SaveFlashFile(const String &FileName, DynamicJsonDocument &FileData)
 {
     // DEBUG_START;
     bool Response = false;
@@ -923,7 +923,7 @@ bool c_FileMgr::ReadFlashFile (const String& FileName, String& FileData)
 } // ReadConfigFile
 
 //-----------------------------------------------------------------------------
-bool c_FileMgr::ReadFlashFile (const String& FileName, JsonDocument & FileData)
+bool c_FileMgr::ReadFlashFile (const String& FileName, DynamicJsonDocument & FileData)
 {
     // DEBUG_START;
     bool GotFileData = false;
@@ -1424,7 +1424,7 @@ bool c_FileMgr::ReadSdFile (const String & FileName, String & FileData)
 } // ReadSdFile
 
 //-----------------------------------------------------------------------------
-bool c_FileMgr::ReadSdFile (const String & FileName, JsonDocument & FileData)
+bool c_FileMgr::ReadSdFile (const String & FileName, DynamicJsonDocument & FileData)
 {
     // DEBUG_START;
 
@@ -1800,7 +1800,7 @@ void c_FileMgr::BuildFseqList(bool DisplayFileNames)
             logcon(F("ERROR: Could not open SD card for Reading FSEQ List."));
             break;
         }
-        JsonDocument jsonDoc;
+        DynamicJsonDocument jsonDoc(4096);
         jsonDoc.to<JsonObject>();
 
         // open output file, erase old data
@@ -2143,7 +2143,7 @@ void c_FileMgr::BuildDefaultFseqList ()
 {
     // DEBUG_START;
 
-    JsonDocument jsonDoc;
+    DynamicJsonDocument jsonDoc(1024);
     jsonDoc.to<JsonObject>();
     JsonWrite(jsonDoc, "SdCardPresent", false);
     JsonWrite(jsonDoc, "totalBytes", 0);

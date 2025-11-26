@@ -78,7 +78,7 @@ struct config_t
 };
 
 String  serializeCore          (bool pretty = false);
-void    deserializeCoreHandler (JsonDocument& jsonDoc);
+void    deserializeCoreHandler (DynamicJsonDocument& jsonDoc);
 bool    deserializeCore        (JsonObject & json);
 bool    dsDevice               (JsonObject & json);
 bool    dsNetwork              (JsonObject & json);
@@ -101,7 +101,7 @@ extern  uint32_t DiscardedRxData;
 
 extern void PrettyPrint (JsonObject& jsonStuff, String Name);
 extern void PrettyPrint (JsonArray& jsonStuff, String Name);
-extern void PrettyPrint(JsonDocument &jsonStuff, String Name);
+extern void PrettyPrint(DynamicJsonDocument &jsonStuff, String Name);
 
 template <typename T, typename N>
 bool setFromJSON (T& OutValue, JsonObject & Json, N Name)

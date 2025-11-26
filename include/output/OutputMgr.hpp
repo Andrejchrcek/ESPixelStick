@@ -48,7 +48,7 @@ public:
     void      GetConfig         (byte * Response, uint32_t maxlen);
     void      GetConfig         (String & Response);
     void      SetConfig         (const char * NewConfig);  ///< Save the current configuration data to nvram
-    void      SetConfig         (ArduinoJson::JsonDocument & NewConfig);  ///< Save the current configuration data to nvram
+    void      SetConfig         (ArduinoJson::DynamicJsonDocument & NewConfig);  ///< Save the current configuration data to nvram
     void      GetStatus         (JsonObject & jsonStatus);
     void      GetPortCounts     (uint16_t& PixelCount, uint16_t& SerialCount) {PixelCount = uint16_t(OutputChannelId_End); SerialCount = uint16_t(NUM_UARTS); }
     uint8_t*  GetBufferAddress  () { return OutputBuffer; } ///< Get the address of the buffer into which the E1.31 handler will stuff data
@@ -63,6 +63,7 @@ public:
     void      TaskPoll          ();
     void      RelayUpdate       (uint8_t RelayId, String & NewValue, String & Response);
     void      ClearStatistics   (void);
+    void      GetRmtInstances(std::vector<c_OutputRmt*>& rmtInstances);
 
     // handles to determine which output channel we are dealing with
     enum e_OutputChannelIds
@@ -241,13 +242,13 @@ private:
     bool OutputIsPaused     = false;
     bool BuildingNewConfig  = false;
 
-    bool ProcessJsonConfig (JsonDocument & jsonConfig);
+    bool ProcessJsonConfig (DynamicJsonDocument & jsonConfig);
     void CreateJsonConfig  (JsonObject & jsonConfig);
     void UpdateDisplayBufferReferences (void);
     void InstantiateNewOutputChannel(DriverInfo_t &ChannelIndex, e_OutputType NewChannelType, bool StartDriver = true);
     void CreateNewConfig();
     void SetSerialUart();
-    bool FindJsonChannelConfig (JsonDocument& jsonConfig, e_OutputChannelIds ChanId, e_OutputType Type, JsonObject& ChanConfig);
+    bool FindJsonChannelConfig (DynamicJsonDocument& jsonConfig, e_OutputChannelIds ChanId, e_OutputType Type, JsonObject& ChanConfig);
 
     String ConfigFileName;
 
