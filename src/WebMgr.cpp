@@ -369,6 +369,30 @@ void c_WebMgr::init ()
             }
         );
 
+        webServer.on("/api/espnow", HTTP_GET | HTTP_POST | HTTP_OPTIONS,
+            [this](AsyncWebServerRequest* request) {},
+            NULL,
+            [this](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
+            {
+                if (request->method() == HTTP_POST)
+                {
+                    JsonDocument jsonDoc;
+                    deserializeJson(jsonDoc, (const char*)data);
+
+                    String currentConfig;
+                    InputMgr.GetConfig(currentConfig);
+                    JsonDocument currentConfigJson;
+                    deserializeJson(currentConfigJson, currentConfig);
+
+                    JsonObject espnowConfig = jsonDoc.as<JsonObject>();
+                    currentConfigJson["input_config"]["channels"]["0"]["14"] = espnowConfig;
+
+                    InputMgr.SetConfig(currentConfigJson);
+                    request->send(200);
+                }
+            }
+        );
+
         // JSON Config Handler
     	webServer.on ("/conf", HTTP_GET,
         	[this](AsyncWebServerRequest* request)
