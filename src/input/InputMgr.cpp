@@ -178,7 +178,7 @@ bool c_InputMgr::isESPNOWActive()
 {
     for (auto& CurrentInput : InputChannelDrivers)
     {
-        if (CurrentInput.DriverInUse && ((c_InputCommon*)(CurrentInput.DriverId))->GetInputType() == e_InputType::InputType_ESPNOW)
+        if (CurrentInput.DriverInUse && ((c_InputCommon*)(CurrentInput.InputDriver))->GetInputType() == e_InputType::InputType_ESPNOW)
         {
             c_InputESPNOW* espnowInput = (c_InputESPNOW*)CurrentInput.InputDriver;
             if (espnowInput->isEnabled())
