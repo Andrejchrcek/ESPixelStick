@@ -54,8 +54,6 @@ private:
 
     AsyncUDP udp;
     void ProcessReceivedUdpPacket (AsyncUDPPacket & _packet);
-    void ProcessSyncPacket (uint8_t action, String filename, float seconds_elapsed);
-    void ProcessBlankPacket ();
     bool PlayingFile ();
 
     bool inFileUpload = false;
@@ -156,6 +154,8 @@ public:
     void GenerateFppSyncMsg           (uint8_t Action, const String & FileName, uint32_t CurrentFrame, const float & ElpsedTime);
     void GetSysInfoJSON               (JsonObject& jsonResponse);
     bool PlayingAfile                 () {return PlayingFile();}
+    void ProcessSyncPacket (uint8_t action, String filename, float seconds_elapsed);
+    void ProcessBlankPacket ();
 
 #   define SYNC_PKT_START       0
 #   define SYNC_PKT_STOP        1
