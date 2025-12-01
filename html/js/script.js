@@ -723,6 +723,16 @@ function ProcessWindowChange(NextWindow) {
         RequestListOfFiles();
     }
 
+    else if (NextWindow === "#espnow") {
+        if ($('#espnow').is(':empty')) {
+            fetch('espnow.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('espnow').innerHTML = data;
+                });
+        }
+    }
+
     UpdateAdvancedOptionsMode();
     UpdateChannelCounts();
 

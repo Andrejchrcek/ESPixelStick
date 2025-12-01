@@ -369,6 +369,64 @@ void c_WebMgr::init ()
             }
         );
 
+        webServer.on("/api/espnow", HTTP_GET | HTTP_POST | HTTP_OPTIONS,
+            [this](AsyncWebServerRequest* request)
+            {
+                if (request->method() == HTTP_GET)
+                {
+                    String response;
+                    InputMgr.GetConfig(response);
+                    JsonDocument jsonDoc;
+                    deserializeJson(jsonDoc, response);
+                    JsonObject espnowConfig = jsonDoc["input_config"]["channels"]["0"]["7"];
+                    if (espnowConfig.isNull())
+                    {
+                        espnowConfig = jsonDoc["input_config"]["channels"]["0"].to<JsonObject>();
+                        espnowConfig["enabled"] = false;
+                        espnowConfig["channel"] = 1;
+                        espnowConfig["mac_address"] = "";
+                        espnowConfig["priority"] = "espnow";
+                        espnowConfig["timeout"] = 5;
+                    }
+                    else
+                    {
+                        espnowConfig["enabled"] = (jsonDoc["input_config"]["channels"]["0"]["type"] == 7);
+                    }
+                    String espnowResponse;
+                    serializeJson(espnowConfig, espnowResponse);
+                    request->send(200, CN_applicationSLASHjson, espnowResponse);
+                }
+            },
+            NULL,
+            [this](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
+            {
+                if (request->method() == HTTP_POST)
+                {
+                    JsonDocument jsonDoc;
+                    deserializeJson(jsonDoc, (const char*)data);
+
+                    String currentConfig;
+                    InputMgr.GetConfig(currentConfig);
+                    JsonDocument currentConfigJson;
+                    deserializeJson(currentConfigJson, currentConfig);
+
+                    JsonObject espnowConfig = jsonDoc.as<JsonObject>();
+                    if (espnowConfig["enabled"])
+                    {
+                        currentConfigJson["input_config"]["channels"]["0"]["type"] = 7;
+                    }
+                    else
+                    {
+                        currentConfigJson["input_config"]["channels"]["0"]["type"] = 8; // Disabled
+                    }
+                    currentConfigJson["input_config"]["channels"]["0"]["7"] = espnowConfig;
+
+                    InputMgr.SetConfig(currentConfigJson);
+                    request->send(200);
+                }
+            }
+        );
+
         // JSON Config Handler
     	webServer.on ("/conf", HTTP_GET,
         	[this](AsyncWebServerRequest* request)
