@@ -729,6 +729,7 @@ function ProcessWindowChange(NextWindow) {
                 .then(response => response.text())
                 .then(data => {
                     document.getElementById('espnow').innerHTML = data;
+                    loadScript("js/espnow.js");
                 });
         }
     }
