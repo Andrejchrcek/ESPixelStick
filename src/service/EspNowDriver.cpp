@@ -250,11 +250,12 @@ void c_EspNowDriver::ProcessConfig(AsyncWebServerRequest* request)
 {
     if (request->method() == HTTP_GET)
     {
-        AsyncJsonResponse *response = new AsyncJsonResponse();
-        JsonObject root = response->getRoot();
+        JsonDocument jsonDoc;
+        JsonObject root = jsonDoc.to<JsonObject>();
         GetConfig(root);
-        response->setLength();
-        request->send(response);
+        String response;
+        serializeJson(jsonDoc, response);
+        request->send(200, "application/json", response);
     }
     // POST handled in HandleConfigBody
 }
