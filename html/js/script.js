@@ -440,6 +440,14 @@ $(function ()
             RequestFileUpload();
         }));
     */
+    $('#btn_save_espnow').on("click", (function () {
+        submitEspNowConfig();
+    }));
+
+    $('#btn_test_espnow').on("click", (function () {
+        sendEspNowTest();
+    }));
+
     // Autoload tab based on URL hash
     let hash = window.location.hash;
     hash && $('ul.navbar-nav li a[href="' + hash + '"]').click();
@@ -721,6 +729,10 @@ function ProcessWindowChange(NextWindow) {
 
     else if (NextWindow === "#filemanagement") {
         RequestListOfFiles();
+    }
+
+    else if (NextWindow === "#espnow") {
+        RequestEspNowConfig();
     }
 
     UpdateAdvancedOptionsMode();
@@ -1211,7 +1223,7 @@ function MarqueeGroupAddRow(CurrentConfig) {
 
         let CurrentGroupColor = "#" + ((CurrentConfig.color.r * 256 * 256) + (CurrentConfig.color.g * 256) + CurrentConfig.color.b).toString(16);
 
-        while (-1 !== CurrentRowId.indexOf("-")) 
+        while (-1 !== CurrentRowId.indexOf("-"))
         {
             CurrentRowId = CurrentRowId.replace("-", "_");
         }
@@ -1226,17 +1238,17 @@ function MarqueeGroupAddRow(CurrentConfig) {
         let MarqueeGroupDeletePattern       = '<td><button type="Button" class="btn btn-primary"       id="MarqueeGroupDelete_'       + CurrentRowId + '" RowId="' + CurrentRowId + '">Delete</button></td>';
 
 //      var rowPattern = '<tr>' + StartPattern + EndPattern + StartValuePattern + EndValuePattern + OutputPattern + '</tr>';
-        let rowPattern = '<tr id="MarqueeGroupRow_' + (CurrentRowId) + '" RowId="' + CurrentRowId + '">' + 
-                          MarqueeGroupIdPattern + 
-                          MarqueeGroupIntensityPattern + 
-                          MarqueeGroupIntensityEndPattern + 
-                          MarqueeGroupCountPattern + 
-                          MarqueeGroupColorPattern + 
-                          MarqueeGroupDeletePattern + 
+        let rowPattern = '<tr id="MarqueeGroupRow_' + (CurrentRowId) + '" RowId="' + CurrentRowId + '">' +
+                          MarqueeGroupIdPattern +
+                          MarqueeGroupIntensityPattern +
+                          MarqueeGroupIntensityEndPattern +
+                          MarqueeGroupCountPattern +
+                          MarqueeGroupColorPattern +
+                          MarqueeGroupDeletePattern +
                           '</tr> ';
         $('#MarqueeGroupTable tbody tr:last').after(rowPattern);
         $('#MarqueeGroupDelete_' + CurrentRowId).on("click", function () { MarqueeGroupDeleteRow($(this)); });
-        
+
         $('#MarqueeGroupIntensity_' + (CurrentRowId)).val(CurrentConfig.brightness);
         $('#MarqueeGroupIntensityEnd_' + (CurrentRowId)).val(CurrentConfig.brightnessEnd);
         $('#MarqueeGroupCount_' + (CurrentRowId)).val(CurrentConfig.pixel_count);
@@ -2403,7 +2415,7 @@ function ProcessReceivedJsonStatusMessage(JsonStat) {
     {
         if ({}.hasOwnProperty.call(OutputStatus, 'Relay')) {
             $('#RelayStatus').removeClass("hidden")
-    
+
             OutputStatus.Relay.forEach(function (currentRelay) {
                 $('#RelayValue_' + currentRelay.id).text(currentRelay.activevalue);
             });
@@ -2411,6 +2423,17 @@ function ProcessReceivedJsonStatusMessage(JsonStat) {
         else {
             $('#RelayStatus').addClass("hidden")
         }
+    }
+
+    if ({}.hasOwnProperty.call(Status, 'EspNow')) {
+        let EspNowStatus = Status.EspNow;
+        $('#EspNowStatus').removeClass("hidden");
+        $('#en_enabled').text(EspNowStatus.enabled ? "Yes" : "No");
+        $('#en_conf_channel').text(EspNowStatus.configured_channel);
+        $('#en_curr_channel').text(EspNowStatus.current_channel);
+        $('#en_wifi_conn').text(EspNowStatus.wifi_connected ? "Yes" : "No");
+    } else {
+        $('#EspNowStatus').addClass("hidden");
     }
 
     // Device Refresh is dynamic
@@ -2548,3 +2571,77 @@ $('#confirm-reset .btn-ok').on("click", (function () {
     showReboot();
     SendCommand('X7');
 }));
+
+function RequestEspNowConfig()
+{
+    var url = "espnow/config";
+    // console.debug("RequestEspNowConfig: 'GET' URL: '" + url + "'");
+
+    $.ajaxQueue(
+    {
+        type: "GET",
+        url: url,
+        mode: "cors", // no-cors, *cors, same-origin
+        dataType: "json",
+        timeout: 20000,
+        async: false,
+        headers: { 'Content-Type': 'application/json' },
+        cache: "reload", // *default, no-cache, reload, force-cache, only-if-cached
+        credentials: "same-origin", // include, *same-origin, omit
+        redirect: "follow", // manual, *follow, error
+        referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+        success: function(response)
+        {
+            // console.debug("RequestEspNowConfig: " + JSON.stringify(response));
+            $('#espnow_enabled').prop('checked', response.enabled);
+            $('#espnow_channel').val(response.channel);
+        },
+        error: function()
+        {
+            console.error("RequestEspNowConfig: AJAX request failed for: " + url);
+        }
+    });
+}
+
+function submitEspNowConfig()
+{
+    let config = {
+        enabled: $('#espnow_enabled').is(':checked'),
+        channel: parseInt($('#espnow_channel').val())
+    };
+
+    $.ajaxQueue(
+    {
+        type: "POST",
+        url: "espnow/config",
+        data: JSON.stringify(config),
+        contentType: "application/json",
+        timeout: 20000,
+        success: function(response)
+        {
+            alert("ESP-NOW Configuration Saved");
+        },
+        error: function()
+        {
+            alert("Failed to save ESP-NOW Configuration");
+        }
+    });
+}
+
+function sendEspNowTest()
+{
+    $.ajaxQueue(
+    {
+        type: "POST",
+        url: "espnow/test",
+        timeout: 20000,
+        success: function(response)
+        {
+            alert("Test Packet Sent");
+        },
+        error: function()
+        {
+            alert("Failed to send Test Packet");
+        }
+    });
+}

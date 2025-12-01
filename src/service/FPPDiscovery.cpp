@@ -319,6 +319,15 @@ void c_FPPDiscovery::ClearStatistics ()
 void c_FPPDiscovery::ProcessReceivedUdpPacket (AsyncUDPPacket & UDPpacket)
 {
     // DEBUG_START;
+    // DEBUG_V (String ("Received UDP packet from: ") + UDPpacket.remoteIP ().toString ());
+    // DEBUG_V (String ("                 Sent to: ") + UDPpacket.localIP ().toString ());
+    ProcessFPPPacket (UDPpacket.data (), UDPpacket.length (), UDPpacket.remoteIP ());
+    // DEBUG_END;
+} // ProcessReceivedUdpPacket
+
+void c_FPPDiscovery::ProcessFPPPacket (uint8_t* data, size_t len, IPAddress remoteIP)
+{
+    // DEBUG_START;
 
     FPPSemaphore.Take();
 
@@ -331,9 +340,8 @@ void c_FPPDiscovery::ProcessReceivedUdpPacket (AsyncUDPPacket & UDPpacket)
             break;
         }
 
-        FPPPacket* fppPacket = reinterpret_cast<FPPPacket*>(UDPpacket.data ());
-        // DEBUG_V (String ("Received UDP packet from: ") + UDPpacket.remoteIP ().toString ());
-        // DEBUG_V (String ("                 Sent to: ") + UDPpacket.localIP ().toString ());
+        FPPPacket* fppPacket = reinterpret_cast<FPPPacket*>(data);
+
         // DEBUG_V (String ("         FPP packet_type: ") + String(fppPacket->packet_type));
 
         if ((fppPacket->header[0] != 'F') ||
@@ -365,14 +373,14 @@ void c_FPPDiscovery::ProcessReceivedUdpPacket (AsyncUDPPacket & UDPpacket)
 
             case CTRL_PKT_SYNC:
             {
-                FPPMultiSyncPacket* msPacket = reinterpret_cast<FPPMultiSyncPacket*>(UDPpacket.data ());
+                FPPMultiSyncPacket* msPacket = reinterpret_cast<FPPMultiSyncPacket*>(data);
                 // DEBUG_V (String (F ("msPacket->sync_type: ")) + String(msPacket->sync_type));
 
                 if (msPacket->sync_type == SYNC_FILE_SEQ)
                 {
                     // FSEQ type, not media
                     // DEBUG_V (String (F ("Received FPP FSEQ sync packet")));
-                    FppRemoteIp = UDPpacket.remoteIP ();
+                    FppRemoteIp = remoteIP;
                     ProcessSyncPacket (msPacket->sync_action, String (msPacket->filename), msPacket->seconds_elapsed);
                 }
                 else if (msPacket->sync_type == SYNC_FILE_MEDIA)
@@ -406,7 +414,7 @@ void c_FPPDiscovery::ProcessReceivedUdpPacket (AsyncUDPPacket & UDPpacket)
                 // DEBUG_V (String (F ("Ping Packet")));
 
                 MultiSyncStats.pktPing++;
-                FPPPingPacket* pingPacket = reinterpret_cast<FPPPingPacket*>(UDPpacket.data ());
+                FPPPingPacket* pingPacket = reinterpret_cast<FPPPingPacket*>(data);
 
                 // DEBUG_V (String (F ("Ping Packet subtype: ")) + String (pingPacket->ping_subtype));
                 // DEBUG_V (String (F ("Ping Packet packet.versionMajor: ")) + String (pingPacket->versionMajor));
@@ -418,7 +426,7 @@ void c_FPPDiscovery::ProcessReceivedUdpPacket (AsyncUDPPacket & UDPpacket)
                 {
                     // DEBUG_V (String (F ("FPP Ping discovery packet")));
                     // received a discover ping packet, need to send a ping out
-                    if (UDPpacket.isBroadcast () || UDPpacket.isMulticast ())
+                    if (remoteIP[3] == 255 || remoteIP == IPAddress(239, 70, 80, 80))
                     {
                         // DEBUG_V ("Broadcast Ping Response");
                         sendPingPacket (ipBcast);
@@ -427,8 +435,8 @@ void c_FPPDiscovery::ProcessReceivedUdpPacket (AsyncUDPPacket & UDPpacket)
                     }
                     else
                     {
-                        // DEBUG_V (String("Unicast Ping Response to " ) + UDPpacket.remoteIP ().toString());
-                        sendPingPacket (UDPpacket.remoteIP ());
+                        // DEBUG_V (String("Unicast Ping Response to " ) + remoteIP.toString());
+                        sendPingPacket (remoteIP);
                     }
                 }
                 else
@@ -465,7 +473,7 @@ void c_FPPDiscovery::ProcessReceivedUdpPacket (AsyncUDPPacket & UDPpacket)
     FPPSemaphore.Give();
 
     // DEBUG_END;
-} // ProcessReceivedUdpPacket
+} // ProcessFPPPacket
 
 //-----------------------------------------------------------------------------
 void c_FPPDiscovery::ProcessSyncPacket (uint8_t action, String FileName, float SecondsElapsed)
