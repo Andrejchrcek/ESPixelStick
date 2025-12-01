@@ -23,6 +23,7 @@
 
 #include "input/InputMgr.hpp"
 #include "service/FPPDiscovery.h"
+#include "service/EspNowDriver.h"
 #include "network/NetworkMgr.hpp"
 #ifdef ARDUINO_ARCH_ESP8266
 #   include <ESPAsyncTCP.h>
@@ -633,6 +634,39 @@ void c_WebMgr::init ()
 		}
 	);
 
+    // ESP-NOW Handlers
+    webServer.on("/espnow/config", HTTP_GET, [](AsyncWebServerRequest *request) {
+        EspNowDriver.ProcessConfig(request);
+    });
+
+    webServer.on("/espnow/config", HTTP_POST,
+        [](AsyncWebServerRequest *request) {
+            // Processing happens in the body handler or after body is received
+            // But since AsyncWebServer handles body in a separate callback for large files/data,
+            // or if we want to handle JSON body, we usually use the 5th argument (onBody).
+            // However, EspNowDriver.ProcessConfig expects the request to have the data if it's small?
+            // AsyncWebServerRequest doesn't buffer the body automatically unless configured?
+            // Actually, for small JSON, we need to capture the body.
+            // Let's defer to EspNowDriver to handle the request, but we need to ensure body is available.
+            // The simplest way for small JSON is to use the onBody callback.
+            EspNowDriver.ProcessConfig(request);
+        },
+        NULL, // onUpload
+        [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+            // Accumulate body data if needed, or pass directly.
+            // For simplicity, let's assume we can handle it here or attach it to the request.
+            // A common pattern is to store it in the request object if possible, or parse it here.
+            // But EspNowDriver.ProcessConfig(request) is called in the onRequest callback which happens AFTER body?
+            // No, onRequest is called when headers are parsed. onBody is called as body arrives.
+            // So we need to handle the body.
+            EspNowDriver.HandleConfigBody(request, data, len, index, total);
+        }
+    );
+
+    webServer.on("/espnow/test", HTTP_POST, [](AsyncWebServerRequest *request) {
+        EspNowDriver.ProcessTest(request);
+    });
+
         webServer.onNotFound ([this](AsyncWebServerRequest* request)
             {
                 // DEBUG_V (String("onNotFound. URL: ") + request->url());
@@ -803,6 +837,9 @@ void c_WebMgr::ProcessXJRequest (AsyncWebServerRequest* client)
 
     // DEBUG_V ("FPPDiscovery.GetStatus");
     FPPDiscovery.GetStatus (system);
+
+    // DEBUG_V ("EspNowDriver.GetStatus");
+    EspNowDriver.GetStatus(system);
 
     // DEBUG_V ("InputMgr.GetStatus");
     // Ask Input Stats

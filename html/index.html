@@ -30,6 +30,7 @@
                     <li><a href="#pg_network">Network Setup</a></li>
                     <li><a href="#config">Device Setup</a></li>
                     <li><a href="#diag">Diagnostics</a></li>
+                    <li id="li-espnow"><a href="#espnow">ESP-NOW</a></li>
                     <li id="li-filemanagement" class="hidden"><a href="#filemanagement">File Management</a></li>
                 </ul>
                 <ul class="nav navbar-nav navbar-right">
@@ -332,6 +333,29 @@
                             <tr class>
                                 <td width="50%">Last Error: </td>
                                 <td><span id="localFilePlayerlasterror"></span></td>
+                            </tr>
+                        </table>
+                    </fieldset>
+                </div>
+                <div class="col-sm-6 hidden" id="EspNowStatus">
+                    <fieldset>
+                        <legend class="esps-legend">ESP-NOW Status</legend>
+                        <table class="esps-table">
+                            <tr>
+                                <td width="50%">Enabled: </td>
+                                <td><span id="en_enabled"></span></td>
+                            </tr>
+                            <tr>
+                                <td width="50%">Configured Channel: </td>
+                                <td><span id="en_conf_channel"></span></td>
+                            </tr>
+                            <tr>
+                                <td width="50%">Current Channel: </td>
+                                <td><span id="en_curr_channel"></span></td>
+                            </tr>
+                            <tr>
+                                <td width="50%">WiFi Connected: </td>
+                                <td><span id="en_wifi_conn"></span></td>
                             </tr>
                         </table>
                     </fieldset>
@@ -826,6 +850,42 @@
                         <button type="button" id="DeviceConfigSave" class="btn btn-primary">Save Changes</button>
                     </div>
                 </div>
+            </form>
+        </div>
+
+        <!-- ESP-NOW Configuration -->
+        <div id="espnow" class="mdiv hidden anchor">
+            <form class="form-horizontal">
+                <fieldset>
+                    <legend class="esps-legend">ESP-NOW Configuration</legend>
+                    <div class="form-group">
+                        <div class="col-sm-offset-2 col-sm-8">
+                            <div class="checkbox"><label><input type="checkbox" id="espnow_enabled"> Enable ESP-NOW</label></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label col-sm-2" for="espnow_channel">Channel</label>
+                        <div class="col-sm-2">
+                            <input type="number" class="form-control" id="espnow_channel" min="1" max="13" step="1">
+                        </div>
+                        <div class="col-sm-8">
+                            <span class="help-block" id="espnow_channel_help">Channel can only be set when WiFi is not connected.</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-sm-offset-2 col-sm-8">
+                            <button id="btn_save_espnow" type="button" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend class="esps-legend">Test</legend>
+                    <div class="form-group">
+                        <div class="col-sm-offset-2 col-sm-8">
+                            <button id="btn_test_espnow" type="button" class="btn btn-primary">Send Test Packet</button>
+                        </div>
+                    </div>
+                </fieldset>
             </form>
         </div>
 

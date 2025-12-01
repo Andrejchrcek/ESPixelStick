@@ -54,6 +54,9 @@ private:
 
     AsyncUDP udp;
     void ProcessReceivedUdpPacket (AsyncUDPPacket & _packet);
+public:
+    void ProcessFPPPacket (uint8_t* data, size_t len, IPAddress remoteIP);
+private:
     void ProcessSyncPacket (uint8_t action, String filename, float seconds_elapsed);
     void ProcessBlankPacket ();
     bool PlayingFile ();

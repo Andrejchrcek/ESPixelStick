@@ -41,6 +41,7 @@
 
 // Services
 #include "service/FPPDiscovery.h"
+#include "service/EspNowDriver.h"
 #include <TimeLib.h>
 #ifdef SUPPORT_SENSOR_DS18B20
 #include "service/SensorDS18B20.h"
@@ -232,6 +233,9 @@ void setup()
     // DEBUG_V(String("FPPDiscovery Heap: ") + String(ESP.getFreeHeap()));
     FPPDiscovery.begin ();
 
+    // DEBUG_V(String("EspNowDriver Heap: ") + String(ESP.getFreeHeap()));
+    EspNowDriver.Begin ();
+
     // DEBUG_V(String("Final Heap: ") + String(ESP.getFreeHeap()));
 
 #ifdef ARDUINO_ARCH_ESP8266
@@ -388,6 +392,11 @@ bool deserializeCore (JsonObject & json)
         // DEBUG_V("");
         ConfigSaveNeeded |= NetworkMgr.SetConfig(DeviceConfig);
         // DEBUG_V("");
+        if (DeviceConfig.containsKey("EspNow"))
+        {
+            JsonObject EspNowConfig = DeviceConfig["EspNow"];
+            ConfigSaveNeeded |= EspNowDriver.SetConfig(EspNowConfig);
+        }
         #ifdef SUPPORT_SENSOR_DS18B20
         ConfigSaveNeeded |= SensorDS18B20.SetConfig(DeviceConfig);
         #endif // def SUPPORT_SENSOR_DS18B20
@@ -477,6 +486,11 @@ void GetConfig (JsonObject & json)
 
     NetworkMgr.GetConfig (json);
 
+    {
+        JsonObject EspNowConfig = json.createNestedObject("EspNow");
+        EspNowDriver.GetConfig (EspNowConfig);
+    }
+
 #ifdef SUPPORT_SENSOR_DS18B20
     SensorDS18B20.GetConfig(json);
 #endif // def SUPPORT_SENSOR_DS18B20
@@ -558,6 +572,8 @@ void loop()
     FileMgr.Poll ();
 
     FPPDiscovery.Poll ();
+
+    EspNowDriver.Poll ();
 
 #ifdef SUPPORT_SENSOR_DS18B20
     SensorDS18B20.Poll();
