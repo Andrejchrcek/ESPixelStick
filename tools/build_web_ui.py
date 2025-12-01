@@ -112,12 +112,12 @@ def create_header():
     # Write data arrays
     for item in files_data:
         hex_data = ', '.join(f"0x{b:02x}" for b in item['data'])
-        header_content.append(f"const uint8_t {item['var']}[] PROGMEM = {{ {hex_data} }};")
-        header_content.append(f"const size_t {item['var']}_len = {item['length']};")
+        header_content.append(f"static const uint8_t {item['var']}[] PROGMEM = {{ {hex_data} }};")
+        header_content.append(f"static const size_t {item['var']}_len = {item['length']};")
         header_content.append("")
 
     # Write Init function
-    header_content.append("void InitWebUI(AsyncWebServer& server) {")
+    header_content.append("inline void InitWebUI(AsyncWebServer& server) {")
 
     for item in files_data:
         path = item['path']

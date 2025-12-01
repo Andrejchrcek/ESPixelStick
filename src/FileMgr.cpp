@@ -168,9 +168,18 @@ void c_FileMgr::Begin ()
     {
         InitSdFileList ();
 
+#ifdef ARDUINO_ARCH_ESP32
+        if (!LittleFS.begin (true))
+#else
         if (!LittleFS.begin ())
+#endif
         {
             logcon ( String(CN_stars) + F (" Flash file system did not initialize correctly ") + CN_stars);
+#ifdef ARDUINO_ARCH_ESP8266
+            logcon ( String(CN_stars) + F (" Formatting Flash file system ") + CN_stars);
+            LittleFS.format ();
+            LittleFS.begin ();
+#endif
         }
         else
         {
