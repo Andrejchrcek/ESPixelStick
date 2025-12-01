@@ -168,7 +168,7 @@ void c_FileMgr::Begin ()
     {
         InitSdFileList ();
 
-        if (!LittleFS.begin ())
+        if (!LittleFS.begin (true))
         {
             logcon ( String(CN_stars) + F (" Flash file system did not initialize correctly ") + CN_stars);
         }
