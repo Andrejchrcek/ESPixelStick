@@ -20,6 +20,17 @@
 
 #include "ESPixelStick.h"
 #include <ArduinoJson.h>
+#include <ESPAsyncWebServer.h>
+#include <vector>
+
+#define ESP_NOW_MAX_PACKET_LEN 250
+#define ESP_NOW_QUEUE_SIZE 10
+
+struct EspNowPacket {
+    uint8_t data[ESP_NOW_MAX_PACKET_LEN];
+    uint8_t len;
+    IPAddress senderIP;
+};
 
 class c_EspNowDriver
 {
@@ -28,10 +39,16 @@ private:
     uint8_t Channel = 1;
     bool HasBeenInitialized = false;
 
+    EspNowPacket Queue[ESP_NOW_QUEUE_SIZE];
+    volatile uint8_t QueueHead = 0;
+    volatile uint8_t QueueTail = 0;
+
     void validateConfiguration();
+    void GetDriverName(String &Name) { Name = "EspNow"; }
 
 public:
     c_EspNowDriver();
+    void EnqueuePacket(const uint8_t* data, size_t len, const IPAddress& ip);
     virtual ~c_EspNowDriver();
 
     void Begin();

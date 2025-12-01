@@ -25,6 +25,8 @@
 #ifdef ARDUINO_ARCH_ESP32
 #include <esp_now.h>
 #include <WiFi.h>
+#include <esp_wifi.h>
+static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 #else
 #include <espnow.h>
 #include <ESP8266WiFi.h>
@@ -37,12 +39,10 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
 void OnDataRecv(uint8_t *mac_addr, uint8_t *data, uint8_t data_len)
 #endif
 {
-    if (data_len > 0)
+    if (data_len > 0 && data_len <= ESP_NOW_MAX_PACKET_LEN)
     {
-        // Construct a fake IP address from the MAC address to satisfy the FPPDiscovery API
-        // This IP is not used for routing, just identification in the FPP logic if needed.
         IPAddress senderIP(mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-        FPPDiscovery.ProcessFPPPacket((uint8_t *)data, (size_t)data_len, senderIP);
+        EspNowDriver.EnqueuePacket(data, (size_t)data_len, senderIP);
     }
 }
 
@@ -54,6 +54,33 @@ c_EspNowDriver::~c_EspNowDriver()
 {
 }
 
+void c_EspNowDriver::EnqueuePacket(const uint8_t* data, size_t len, const IPAddress& ip)
+{
+    // Check if next head is tail (full)
+    uint8_t nextHead = (QueueHead + 1) % ESP_NOW_QUEUE_SIZE;
+    if (nextHead == QueueTail) {
+        return; // Queue Full
+    }
+
+#ifdef ARDUINO_ARCH_ESP32
+    portENTER_CRITICAL_ISR(&mux);
+#else
+    // On ESP8266, simple assignment in ISR is usually atomic for byte operations or we rely on logic order
+    // But noInterrupts() doesn't work in ISR.
+    // However, since this is called FROM ISR/callback, we are already protected from other tasks on the same core.
+    // The Poll function needs to disable interrupts.
+#endif
+
+    memcpy(Queue[QueueHead].data, data, len);
+    Queue[QueueHead].len = (uint8_t)len;
+    Queue[QueueHead].senderIP = ip;
+    QueueHead = nextHead;
+
+#ifdef ARDUINO_ARCH_ESP32
+    portEXIT_CRITICAL_ISR(&mux);
+#endif
+}
+
 void c_EspNowDriver::Begin()
 {
     if (HasBeenInitialized)
@@ -62,26 +89,45 @@ void c_EspNowDriver::Begin()
     }
 
     // Load configuration
-    // We don't have a dedicated config file loader here yet, we rely on SetConfig being called
-    // or we can load from a file here. Since this is a service, maybe we should hook into the main config load?
-    // For now, let's assume config is passed via SetConfig or loaded from a specific file if we want persistence separate from main config.
-    // The requirement implies a new tab, so maybe a separate config file or part of the main config.
-    // I'll implement loading from "espnow_config.json" for persistence.
-
-    DynamicJsonDocument jsonDoc(1024);
-    if (FileMgr.LoadFlashFile("/espnow_config.json", jsonDoc))
-    {
+    FileMgr.LoadFlashFile("/espnow_config.json", [this](JsonDocument &jsonDoc) {
         JsonObject jsonConfig = jsonDoc.as<JsonObject>();
         SetConfig(jsonConfig);
-    }
+    });
 
     HasBeenInitialized = true;
 }
 
 void c_EspNowDriver::Poll()
 {
-    // ESP-NOW doesn't strictly need polling for RX, it uses callbacks.
-    // But if we need to manage state or retries, we could do it here.
+    while (QueueHead != QueueTail)
+    {
+        EspNowPacket packet;
+
+#ifdef ARDUINO_ARCH_ESP32
+        portENTER_CRITICAL(&mux);
+#else
+        noInterrupts();
+#endif
+        // Double check inside critical section
+        if(QueueHead != QueueTail) {
+            packet = Queue[QueueTail];
+            QueueTail = (QueueTail + 1) % ESP_NOW_QUEUE_SIZE;
+        } else {
+#ifdef ARDUINO_ARCH_ESP32
+            portEXIT_CRITICAL(&mux);
+#else
+            interrupts();
+#endif
+            break;
+        }
+#ifdef ARDUINO_ARCH_ESP32
+        portEXIT_CRITICAL(&mux);
+#else
+        interrupts();
+#endif
+
+        FPPDiscovery.ProcessFPPPacket(packet.data, packet.len, packet.senderIP);
+    }
 }
 
 void c_EspNowDriver::validateConfiguration()
@@ -99,7 +145,7 @@ void c_EspNowDriver::GetConfig(JsonObject &jsonConfig)
 bool c_EspNowDriver::SetConfig(JsonObject &jsonConfig)
 {
     bool ConfigChanged = false;
-    if (jsonConfig.containsKey("enabled"))
+    if (jsonConfig["enabled"].is<bool>())
     {
         bool newEnabled = jsonConfig["enabled"];
         if (newEnabled != Enabled)
@@ -109,7 +155,7 @@ bool c_EspNowDriver::SetConfig(JsonObject &jsonConfig)
         }
     }
 
-    if (jsonConfig.containsKey("channel"))
+    if (jsonConfig["channel"].is<uint8_t>())
     {
         uint8_t newChannel = jsonConfig["channel"];
         if (newChannel != Channel)
@@ -126,21 +172,20 @@ bool c_EspNowDriver::SetConfig(JsonObject &jsonConfig)
         // Re-init ESP-NOW if state changed
         if (Enabled)
         {
-            // If already initialized, we might need to deinit first?
-            // esp_now_deinit(); // Not always safe to call repeatedly without checking
-
             // Check if WiFi is active
             if (WiFi.status() == WL_CONNECTED || WiFi.getMode() == WIFI_AP)
             {
                 // Must use current WiFi channel
-                // We don't change channel here if WiFi is connected.
             }
             else
             {
                 // Set WiFi channel if not connected
-                // Note: This might require setting WiFi mode to STA or AP_STA even if not connected
                 WiFi.mode(WIFI_STA);
-                WiFi.setChannel(Channel);
+#ifdef ARDUINO_ARCH_ESP32
+                esp_wifi_set_channel(Channel, WIFI_SECOND_CHAN_NONE);
+#else
+                wifi_set_channel(Channel);
+#endif
             }
 
             if (esp_now_init() != 0)
@@ -156,6 +201,7 @@ bool c_EspNowDriver::SetConfig(JsonObject &jsonConfig)
                 uint8_t broadcastMac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 #ifdef ARDUINO_ARCH_ESP32
                 esp_now_peer_info_t peerInfo;
+                memset(&peerInfo, 0, sizeof(peerInfo));
                 memcpy(peerInfo.peer_addr, broadcastMac, 6);
                 peerInfo.channel = 0;
                 peerInfo.encrypt = false;
@@ -175,7 +221,7 @@ bool c_EspNowDriver::SetConfig(JsonObject &jsonConfig)
         }
 
         // Save config
-        DynamicJsonDocument jsonDoc(1024);
+        JsonDocument jsonDoc;
         JsonObject jsonRoot = jsonDoc.to<JsonObject>();
         GetConfig(jsonRoot);
         FileMgr.SaveFlashFile("/espnow_config.json", jsonDoc);
@@ -185,7 +231,7 @@ bool c_EspNowDriver::SetConfig(JsonObject &jsonConfig)
 
 void c_EspNowDriver::GetStatus(JsonObject &jsonStatus)
 {
-    JsonObject espnowStatus = jsonStatus.createNestedObject("EspNow");
+    JsonObject espnowStatus = jsonStatus["EspNow"].to<JsonObject>();
     espnowStatus["enabled"] = Enabled;
     espnowStatus["configured_channel"] = Channel;
     espnowStatus["current_channel"] = WiFi.channel();
@@ -204,26 +250,21 @@ void c_EspNowDriver::ProcessConfig(AsyncWebServerRequest* request)
 {
     if (request->method() == HTTP_GET)
     {
-        AsyncJsonResponse *response = new AsyncJsonResponse();
-        JsonObject root = response->getRoot();
+        JsonDocument jsonDoc;
+        JsonObject root = jsonDoc.to<JsonObject>();
         GetConfig(root);
-        response->setLength();
-        request->send(response);
+        String response;
+        serializeJson(jsonDoc, response);
+        request->send(200, "application/json", response);
     }
     // POST handled in HandleConfigBody
 }
 
 void c_EspNowDriver::HandleConfigBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
 {
-    // Accumulate the body
-    // For small JSON configs, we can assume it fits in one packet or simple accumulation.
-    // However, AsyncWebServer doesn't persist state across chunks easily without custom objects.
-    // But since `script.js` sends small JSON, it likely comes in one chunk.
-
-    // We'll try to parse the JSON directly from the data chunk if it's the full body.
     if (index == 0 && len == total)
     {
-        DynamicJsonDocument jsonDoc(1024);
+        JsonDocument jsonDoc;
         DeserializationError error = deserializeJson(jsonDoc, data, len);
         if (!error)
         {
@@ -238,7 +279,6 @@ void c_EspNowDriver::HandleConfigBody(AsyncWebServerRequest *request, uint8_t *d
     }
     else
     {
-        // Chunked upload not implemented for simplicity
         request->send(501, "application/json", "{\"status\":\"Not Implemented\"}");
     }
 }
@@ -246,7 +286,6 @@ void c_EspNowDriver::HandleConfigBody(AsyncWebServerRequest *request, uint8_t *d
 void c_EspNowDriver::ProcessTest(AsyncWebServerRequest* request)
 {
     // Send a test packet
-    // Construct a dummy FPP Sync packet
     struct {
         char header[4];
         uint8_t packet_type;
