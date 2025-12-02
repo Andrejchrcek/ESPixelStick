@@ -74,8 +74,11 @@ typedef enum
 #endif // def ARDUINO_ARCH_ESP8266
 
 // Platform specific GPIO definitions
+// Platform specific GPIO definitions
 #if   defined (BOARD_ESP32_CAM)
 #   include "platforms/GPIO_Defs_ESP32_CAM.hpp"
+#elif   defined (BOARD_ESP32_CAM_OV5640)
+#   include "platforms/GPIO_Defs_ESP32_CAM_OV5640.hpp"
 #elif defined (BOARD_ESP32_D1_MINI_ETH)
 #   include "platforms/GPIO_Defs_ESP32_D1_MINI_ETH.hpp"
 #elif defined (BOARD_ESP32_D1_MINI)
