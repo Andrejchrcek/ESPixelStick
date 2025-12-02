@@ -19,11 +19,12 @@
 */
 
 //Output Manager
-#define DEFAULT_RMT_0_GPIO     gpio_num_t::GPIO_NUM_0
-#define DEFAULT_RMT_1_GPIO     gpio_num_t::GPIO_NUM_1
-
-#define DEFAULT_RMT_2_GPIO      gpio_num_t::GPIO_NUM_3
-#define DEFAULT_RMT_3_GPIO      gpio_num_t::GPIO_NUM_16
+#define DEFAULT_RMT_0_GPIO     gpio_num_t::GPIO_NUM_25
+#define DEFAULT_RMT_1_GPIO     gpio_num_t::GPIO_NUM_32
+#define DEFAULT_RMT_2_GPIO      gpio_num_t::GPIO_NUM_38
+#define DEFAULT_RMT_3_GPIO      gpio_num_t::GPIO_NUM_37
+#define DEFAULT_RMT_4_GPIO      gpio_num_t::GPIO_NUM_16
+#define DEFAULT_RMT_5_GPIO      gpio_num_t::GPIO_NUM_17
 
 //#define LED_FLASH_GPIO          gpio_num_t::GPIO_NUM_4
 //#define LED_FLASH_OFF           LOW
