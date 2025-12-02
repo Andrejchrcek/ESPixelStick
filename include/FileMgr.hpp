@@ -27,6 +27,11 @@
 #include <map>
 #include <vector>
 
+#ifdef USE_1BIT_SD
+    #include <FS.h>
+    #include <SD_MMC.h>
+#endif
+
 #ifdef ARDUINO_ARCH_ESP32
 #   ifdef SUPPORT_SD_MMC
 #       define ESP_SD   SD_MMC
@@ -234,7 +239,11 @@ public: struct __attribute__((__packed__, aligned(4))) CSD {
     struct FileListEntry_t
     {
         FileId      handle = INVALID_FILE_HANDLE;
-        FsFile      fsFile;
+        #ifdef USE_1BIT_SD
+                fs::File    fsFile; // Pre tvoju dosku (SD_MMC)
+         #else
+                FsFile      fsFile; // Pre ostatné dosky (SdFat)
+            #endif
         uint64_t    size = 0;
         int         entryId = -1;
         char        Filename[65];
